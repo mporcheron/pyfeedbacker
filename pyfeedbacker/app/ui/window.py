@@ -287,5 +287,7 @@ class WindowWidget:
         if key == 'esc':
             if self.loop.widget == self.popup_quit:
                 self.loop.widget = self.frame
+            else:
+                self.request_quit()
         elif key in ('q', 'Q'):
             self.request_quit()
