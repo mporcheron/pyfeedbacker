@@ -125,6 +125,9 @@ class WindowWidget:
             self.controller.select_stage(next_stage_info.stage_id)
 
     def append_stage(self, stage_info):
+        """
+        Append a stage to the UI
+        """
         self._last_stage_id = stage_info.stage_id
         self.sidebar.append_stage(stage_info)
 
@@ -203,16 +206,6 @@ class WindowWidget:
         except AttributeError:
             pass
 
-    def show_alert(self, title, text, halt_execution=False):
-        w = up.PopupDialog(title, text)
-        if halt_execution:
-            w.add_buttons([(('Quit ' + cfg.ini['app']['name'],
-                             up.PopupDialog.DIALOG_QUIT))])
-        else:
-            w.add_buttons([(('OK', up.PopupDialog.DIALOG_CANCEL))])
-
-        w.show(self.loop, self.frame)
-
     def set_stage_state(self, stage_id, state):
         """
         Set the state of a stage
@@ -225,6 +218,10 @@ class WindowWidget:
             self._show_continue_button.append(stage_id)
 
     def set_stage_output(self, stage_id, output):
+        """
+        Set the output for a particular stage. Invokes a UI adapter for the
+        output based on its type (see ui.adapters.py) and rewdraws the stage.
+        """
         sa = None
         if isinstance(output, stage.OutputNone):
             sa = ua.AdapterNone(stage_id, self.controller, self.model, self)
@@ -263,19 +260,31 @@ class WindowWidget:
 
     def refresh(self):
         """
-        Refresh the whole UI
+        Refresh/redraw the whole UI
         """
         if self.loop.screen._started:
             self.loop.draw_screen()
 
+    def show_alert(self, title, text, halt_execution=False):
+        w = up.PopupDialog(title, text)
+        if halt_execution:
+            w.add_buttons([(('Quit ' + cfg.ini['app']['name'],
+                             up.PopupDialog.DIALOG_QUIT))])
+        else:
+            w.add_buttons([(('OK', up.PopupDialog.DIALOG_CANCEL))])
+
+        w.show(self.loop, self.frame)
+
     def request_quit(self):
+        """
+        Show a popup asking if the user wants to quit pyfeedbacker
+        """
         w = up.PopupDialog('Quit?',
-                        'Are you sure you want to quit? ' +
-                        'Any unsaved changes will be lost.')
+                           'Are you sure you want to quit? ' +
+                           'Any unsaved changes will be lost.')
         w.add_buttons([('Yes', up.PopupDialog.DIALOG_QUIT),
                        ('No',  up.PopupDialog.DIALOG_CANCEL)])
         w.show(self.loop, self.frame)
-        
 
     def quit(self):
         raise urwid.ExitMainLoop()
