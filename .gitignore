@@ -127,3 +127,11 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# pyfeedbacker
+_output/*
+!_output/empty.txt
+_submissions/*
+!_submissions/empty.txt
+_temp/*
+!_temp/empty.txt
