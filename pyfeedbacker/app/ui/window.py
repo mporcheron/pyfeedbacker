@@ -45,6 +45,9 @@ class WindowWidget:
         self._cache_fresh = []
         self._last_stage_id = None
 
+    def _on_focus_sidebar(self):
+        self.frame.set_focus_path(['body', 0])
+
     def run(self):
         """
         Generate the UI and then call back to execute the first stage
@@ -61,7 +64,7 @@ class WindowWidget:
         body = urwid.Columns(
             [
                 ('fixed', self.sidebar.get_width(), self.sidebar),
-                urwid.ListBox(self._main)
+                uw.EscableListBox(self._main, self._on_focus_sidebar)
             ])
 
         l = [urwid.Divider(), body]
@@ -74,7 +77,7 @@ class WindowWidget:
         screen = urwid.raw_display.Screen
         self.loop = urwid.MainLoop(self.frame,
                                    palette         = self.palette,
-                                   unhandled_input = self.keypress,
+                                   unhandled_input = self._on_keypress,
                                    event_loop      = urwid.SelectEventLoop())
         self.loop.screen.set_terminal_properties(colors=256)
         self.loop.set_alarm_in(1, self._first_stage)
@@ -176,7 +179,7 @@ class WindowWidget:
             bs = urwid.GridFlow([b], continue_text_len, 3, 2, 'center')
             output.append(bs)
 
-        w = urwid.Pile(output)
+        w = uw.JumpablePile(output)
 
         if self.visible_stage_id in self._output_adapters:
             adapter = self._output_adapters[self.visible_stage_id]
@@ -289,7 +292,7 @@ class WindowWidget:
     def quit(self):
         raise urwid.ExitMainLoop()
 
-    def keypress(self, key):
+    def _on_keypress(self, key):
         if self.loop.widget != self.frame:
             return
 

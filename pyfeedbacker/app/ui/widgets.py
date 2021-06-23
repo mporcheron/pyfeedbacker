@@ -7,7 +7,7 @@ import urwid
 class SimpleButton(urwid.Button):
     """
     Custom Urwid button to hide cursor
-    
+
     Based on https://stackoverflow.com/a/44682928
     """
     button_left  = u'< '
@@ -28,7 +28,7 @@ class SimpleButton(urwid.Button):
             urwid.connect_signal(self, 'click', on_press, user_data)
 
         self.set_label(label)
-        
+
     class ButtonLabel(urwid.SelectableIcon):
         '''
         use Drunken Master's trick to move the cursor out of view
@@ -58,3 +58,85 @@ class AutoWidthButton(SimpleButton):
         super(AutoWidthButton, self).__init__(label,
                                               on_press,
                                               user_data)
+
+
+class JumpablePile(urwid.Pile):
+
+    def keypress(self, size, key):
+        """
+        A jumpable Pile allows you to press alt/option/meta + up/down arrow
+        to jump up/down the pile to focus.
+
+        Also loops at the top and bottom.
+        """
+        first_focus_position = None
+        last_focus_position = None
+        for wi, w in enumerate(self.contents):
+            if w[0].selectable():
+                first_focus_position = wi
+                break
+
+        for wi, w in enumerate(reversed(self.contents)):
+            if w[0].selectable():
+                last_focus_position = len(self.contents) - wi - 1
+                break
+
+        if (self.focus_position == first_focus_position and key == 'up') \
+                or key == 'meta down':
+            self.focus_position = last_focus_position
+        elif (self.focus_position == last_focus_position and key == 'down') \
+                or key == 'meta up':
+            self.focus_position = first_focus_position
+        else:
+            return super(JumpablePile, self).keypress(size, key)
+
+
+class JumpableColumns(urwid.Columns):
+
+    def keypress(self, size, key):
+        """
+        A jumpable Columns allows you to press alt/option/meta + right/left 
+        arrow to jump right/left accross the columns to focus.
+
+        Also loops at the left and right.
+        """
+        first_focus_position = None
+        last_focus_position = None
+        for wi, w in enumerate(self.contents):
+            if w[0].selectable():
+                first_focus_position = wi
+                break
+
+        for wi, w in enumerate(reversed(self.contents)):
+            if w[0].selectable():
+                last_focus_position = len(self.contents) - wi - 1
+                break
+
+        if (self.focus_position == first_focus_position and key == 'left') \
+                or key == 'meta f':
+            self.focus_position = last_focus_position
+        elif (self.focus_position == last_focus_position and key == 'right') \
+                or key == 'meta b':
+            self.focus_position = first_focus_position
+        else:
+            return super(JumpableColumns, self).keypress(size, key)
+
+
+class EscableListBox(urwid.ListBox):
+    
+    def __init__(self, body, escape_to):
+        """
+        A ListBox that when someone presses escape, it can shift the focus to
+        another widget.
+        
+        To do this, pass the body in and the function that should be called
+        on escape
+        """
+        self.escape_to = escape_to
+        super(EscableListBox, self).__init__(body)
+
+    def keypress(self, size, key):
+        if key == 'esc':
+            self.escape_to()
+        else:
+            return super(EscableListBox, self).keypress(size, key)

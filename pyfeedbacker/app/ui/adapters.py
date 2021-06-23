@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .. import stage
+from . import widgets as uw
 
 import urwid
 
@@ -13,10 +14,10 @@ class AdapterNone:
         self.controller = controller
         self.model      = model
         self.window     = window
-        
+
         # where the UI should focus
         self.ui_focus   = None
-    
+
     def set(self, output):
         self.output = [urwid.Text(u'This stage has no output adapter.')]
 
@@ -51,7 +52,7 @@ class AdapterText(AdapterBase):
         contents = []
         for line in text:
             contents.append(urwid.Text(line))
-                
+
         super(AdapterText, self).set(contents)
 
 
@@ -78,10 +79,10 @@ class AdapterEditText(AdapterBase):
                     w = urwid.AttrMap(w, 'edit', 'edit selected')
                     contents.append(w)
                 contents.append(urwid.Divider())
-                
-                
+
+
         super(AdapterEditText, self).set(contents)
-    
+
     def _on_edit_change(self, w, old_value, user_data):
         value = w.get_edit_text()
         value = value if value is not None else ''
@@ -102,7 +103,7 @@ class AdapterChecklist(AdapterText):
                            else (u' ❎ ' if state is None else u' ❌ ')
             line += item
             contents.append(line)
-                
+
         super(AdapterChecklist, self).set(contents)
 
 
@@ -125,7 +126,7 @@ class AdapterForm(AdapterBase):
 
         self.scores   = [0] * len(output.questions)
         self.feedback = [''] * len(output.questions)
-            
+
         # generate output
         for question_id, question in enumerate(output.questions):
             # column headings
@@ -153,7 +154,7 @@ class AdapterForm(AdapterBase):
                                       dividechars = 1)
 
                     contents.append(w)
-                
+
             except AttributeError:
                 contents.append(urwid.Divider())
                 current_scale = None
@@ -167,11 +168,11 @@ class AdapterForm(AdapterBase):
                     text += ')'
             elif question.max_score != False:
                 text += ' (max: ' + str(question.max_score) + ')'
-            
+
             if question.required:
                 text += ' *'
                 self.required_not_completed.append(question_id)
-            
+
 
             # existing value in the model?
             try:
@@ -209,7 +210,7 @@ class AdapterForm(AdapterBase):
                     checked = False
                     if existing_score_f == float(score):
                         checked = True
-                    
+
                     button = urwid.RadioButton(radio_group,
                                                str(score) + max_score,
                                                checked,
@@ -236,19 +237,20 @@ class AdapterForm(AdapterBase):
                 w = urwid.AttrMap(w, 'edit', 'edit selected')
                 inputs.append(w)
 
-            w_inputs = [urwid.Columns(inputs, dividechars = 1)]
+            w_inputs = [uw.JumpableColumns(inputs, dividechars = 1)]
             w = urwid.Columns(question_text + w_inputs,
                               min_width   = min_question_width,
                               dividechars = 1)
+
             contents.append(urwid.Divider())
             contents.append(w)
             contents.append(urwid.Divider())
-        
+
         self.ui_focus = [1]
-        
+
         super(AdapterForm, self).set(contents)
-    
-    def status_check(self):            
+
+    def status_check(self):
         if len(self.required_not_completed) == 0:
             focus_path = self.window.frame.get_focus_path()
 
@@ -260,7 +262,7 @@ class AdapterForm(AdapterBase):
 
     def _on_radio_check(self, w, state, user_data):
         self._last_selected_widget = w
-        
+
         question_id  = user_data[0]
         score_id     = user_data[1]
         required     = self.questions[question_id].required
@@ -278,7 +280,7 @@ class AdapterForm(AdapterBase):
             self.required_not_completed.append(question_id)
 
         self.status_check()
-    
+
     def _on_edit_change(self, w, old_value, question_id):
         self._last_selected_widget = w
 
