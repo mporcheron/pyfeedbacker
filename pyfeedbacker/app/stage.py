@@ -283,7 +283,7 @@ class OutputText:
 class OutputEditText:
     def __init__(self, texts = []):
         """
-        An output for one or more edit text fields
+        An output for one or more edit text fields.
         """
         self.texts = texts
         self.callback = None
