@@ -225,17 +225,23 @@ class AdapterForm(AdapterBase):
                     if existing_score_f == float(score):
                         checked = True
                         
-                    label = question.scale[score_id]
+                    button = None
                     if config.ini['assessment'].getboolean('scores_are_marks',
                                                            False):
                         label = str(score) + max_score
+                        button = urwid.RadioButton(radio_group,
+                                                   label,
+                                                   checked,
+                                                   self._on_radio_check,
+                                                   (question_id, score_id))
+                    else:
+                        button = uw.CentredRadioButton(radio_group,
+                                                       checked,
+                                                       self._on_radio_check,
+                                                       (question_id, score_id))
 
-                    button = urwid.RadioButton(radio_group,
-                                               label,
-                                               checked,
-                                               self._on_radio_check,
-                                               (question_id, score_id))
                     button = urwid.Padding(button, 'center', 'pack')
+                    
                     inputs.append(button)
             elif question.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
                 w = urwid.Edit('',

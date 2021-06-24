@@ -141,3 +141,18 @@ class EscableListBox(urwid.ListBox):
         else:
             return super(EscableListBox, self).keypress(size, key)
 
+
+class CentredRadioButton(urwid.RadioButton):
+    
+    def __init__(self, group, state="first True",
+                 on_state_change=None, user_data=None):
+        super(CentredRadioButton, self).__init__(group, '', state,
+                                                 on_state_change, user_data)
+                                                 
+                                                 
+    def set_state(self, state, do_callback=True):
+        self.__super.set_state(state, do_callback)
+        self._w = urwid.Columns( [
+                    self._label,
+                    ('fixed', self.reserve_columns, self.states[state] ),
+                    self._label ] )
