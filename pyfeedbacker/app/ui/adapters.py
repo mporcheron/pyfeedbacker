@@ -90,7 +90,7 @@ class AdapterEditText(AdapterBase):
                 for model_id, text in stage_texts.items():
                     w = urwid.Edit('', text, multiline=True)
                     urwid.connect_signal(w,
-                                        'postchange',
+                                        'change',
                                         self._on_edit_change,
                                         (stage_id, model_id))
                     w = urwid.AttrMap(w, 'edit', 'edit selected')
@@ -138,8 +138,9 @@ class AdapterForm(AdapterBase):
         min_question_width = 20
 
         self.questions = output.questions
-        self.required_not_completed = []
+        self.required_not_completed = set()
         self._last_selected_widget = None
+        self._skip_on_edit_change = None
 
         self.scores   = [0] * len(output.questions)
         self.feedback = [''] * len(output.questions)
@@ -188,7 +189,7 @@ class AdapterForm(AdapterBase):
 
             if question.required:
                 text += ' *'
-                self.required_not_completed.append(question_id)
+                self.required_not_completed.add(question_id)
 
 
             # existing value in the model?
@@ -290,11 +291,15 @@ class AdapterForm(AdapterBase):
             if question_id in self.required_not_completed:
                 self.required_not_completed.remove(question_id)
         elif required:
-            self.required_not_completed.append(question_id)
+            self.required_not_completed.add(question_id)
 
         self.status_check()
 
     def _on_edit_change(self, w, old_value, question_id):
+        if self._skip_on_edit_change == w:
+            self._skip_on_edit_change = None
+            return
+        
         self._last_selected_widget = w
 
         # question = self.questions[user_data]
@@ -303,9 +308,31 @@ class AdapterForm(AdapterBase):
         if q.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
             try:
                 value = float(value) if value is not None else 0.0
+                
+                if q.min_score != False and value < q.min_score:
+                    value = q.min_score
+                    strvalue = str(value)
+                    if int(value) == value:
+                        strvalue = str(int(value))
+                    
+                    self._skip_on_edit_change = w
+                    w.set_edit_text(strvalue)
+            
+                if q.max_score != False and value > q.max_score:
+                    value = q.max_score
+                    strvalue = str(value)
+                    if int(value) == value:
+                        strvalue = str(int(value))
+                    
+                    self._skip_on_edit_change = w
+                    w.set_edit_text(strvalue)
+
                 self.add_score(question_id, value)
             except ValueError:
-                self.add_score(question_id, 0.0)
+                if q.min_score != False:
+                    self.add_score(question_id, q.min_score)
+                else:
+                    self.add_score(question_id, 0.0)
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''
             self.add_feedback(question_id, value)

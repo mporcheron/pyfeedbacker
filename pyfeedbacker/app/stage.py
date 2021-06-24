@@ -305,12 +305,12 @@ class OutputForm:
                 
             elif type_str == 'input_score':
                 try:
-                    min_score = cfg.get('min' + num)
+                    min_score = cfg.getfloat('min' + num, None)
                 except KeyError:
                     min_score = False
 
                 try:
-                    max_score = cfg.get('max' + num)
+                    max_score = cfg.getfloat('max' + num, None)
                 except KeyError:
                     max_score = False
                 
