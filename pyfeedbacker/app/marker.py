@@ -275,6 +275,7 @@ class Controller:
 
 
 class Model(object):
+    FILE_MARKS    = 'marks.csv'
     FILE_SCORES   = 'scores.csv'
     FILE_FEEDBACK = '##type##-feedback-##submission##.txt'
     
@@ -314,8 +315,14 @@ class Model(object):
         value = value.replace('\\n', '\n')
         self.__dict__['raw_feedback'][stage_id][model_id] = value
 
-    def save_scores(self    ):
-        title_header_str = config.ini['app']['name'] + ' scores'
+    def save_scores(self, only_save_marks=False):
+        file_title = ' scores'
+        file_name = Model.FILE_SCORES
+        if only_save_marks:
+            file_title = ' marks'
+            file_name = Model.FILE_MARKS
+        
+        title_header_str = config.ini['app']['name'] + file_title
 
         stage_header = ['submission']
         for stage_id, stage_scores in self.raw_scores.items():
@@ -334,7 +341,7 @@ class Model(object):
                 score_header.append(str(score_id))
         score_header_str = ','.join(score_header) + ',final'
         
-        path = self.dir_output +  os.sep + Model.FILE_SCORES
+        path = self.dir_output +  os.sep + file_name
         print_header = True
         try:
             lines = list(open(path, 'r'))
@@ -382,6 +389,11 @@ class Model(object):
             f.write(','.join(scores) + ',' + str(float(self.score)))
 
             f.write('\n')
+            
+        if not only_save_marks:
+            if config.ini['assessment'].getboolean('scores_are_marks', False):
+                self.save_scores(True)
+        
 
     def save_feedback(self):
         path = self.dir_output +  os.sep + Model.FILE_FEEDBACK.replace(

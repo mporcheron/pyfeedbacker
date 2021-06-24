@@ -50,7 +50,7 @@ class HeaderWidget(urwid.WidgetWrap):
         Get the string that shows the current and maximum number of marks. Only
         returns a string if the configuration value scores_are_marks is True.
         """
-        if not cfg.ini['assessment']['scores_are_marks']:
+        if not cfg.ini['assessment'].getboolean('scores_are_marks', False):
             return ('', 0)
 
         marks_text = (str(self.marks_str) +
