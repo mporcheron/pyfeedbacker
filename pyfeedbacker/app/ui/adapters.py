@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import stage
+from .. import config, stage
 from . import widgets as uw
 
 import urwid
@@ -8,7 +8,7 @@ import urwid
 
 class AdapterNone:
     def __init__(self, stage_id, controller, model, window):
-        self.output    = [urwid.Text(u'This stage has no output.')]
+        self.output    = [urwid.Text('This stage has no output.')]
 
         self.stage_id   = stage_id
         self.controller = controller
@@ -17,9 +17,26 @@ class AdapterNone:
 
         # where the UI should focus
         self.ui_focus   = None
+        
+        # initial score
+        score_init = config.ini[f'stage_{stage_id}'].getfloat(
+            'score_init', None)
+        if score_init:
+            self.add_score('__init', score_init)
 
     def set(self, output):
-        self.output = [urwid.Text(u'This stage has no output adapter.')]
+        self.output = [urwid.Text('This stage has no output adapter.')]
+
+    def add_score(self, model_id, score):
+        self.controller.add_score(self.stage_id,
+                                  model_id,
+                                  score)
+
+    def add_feedback(self, model_id, feedback):
+        self.controller.add_feedback(self.stage_id,
+                                     model_id,
+                                     feedback)
+        
 
 
 class AdapterBase(AdapterNone):
@@ -99,8 +116,8 @@ class AdapterChecklist(AdapterText):
         """
         contents = []
         for state, item in output.progress:
-            line = u' ✅ ' if state \
-                           else (u' ❎ ' if state is None else u' ❌ ')
+            line = ' ✅ ' if state \
+                           else (' ❎ ' if state is None else ' ❌ ')
             line += item
             contents.append(line)
 
@@ -185,18 +202,14 @@ class AdapterForm(AdapterBase):
                 existing_score_f = None
                 existing_score_s = ''
 
-                self.controller.add_score(self.stage_id,
-                                          question_id,
-                                          None)
+                self.add_score(question_id, None)
 
             try:
                 existing_feedback = \
                     self.model.raw_feedback[self.stage_id][question_id]
             except KeyError:
                 existing_feedback = ''
-                self.controller.add_feedback(self.stage_id,
-                                             question_id,
-                                             '')
+                self.add_feedback(question_id, '')
 
             # show question per row
             question_text = [urwid.AttrWrap(urwid.Text(text),
@@ -204,7 +217,7 @@ class AdapterForm(AdapterBase):
 
             inputs = []
             if question.type == stage.OutputForm.Question.TYPE_SCALE:
-                max_score = u'/' + str(max(question.scores))
+                max_score = '/' + str(max(question.scores))
                 radio_group = []
                 for score_id, score in enumerate(question.scores):
                     checked = False
@@ -271,8 +284,8 @@ class AdapterForm(AdapterBase):
             score    = self.questions[question_id].scores[score_id]
             feedback = self.questions[question_id].feedback[score_id]
 
-            self.controller.add_score(self.stage_id, question_id, float(score))
-            self.controller.add_feedback(self.stage_id, question_id, feedback)
+            self.add_score(question_id, float(score))
+            self.add_feedback(question_id, feedback)
 
             if question_id in self.required_not_completed:
                 self.required_not_completed.remove(question_id)
@@ -290,15 +303,9 @@ class AdapterForm(AdapterBase):
         if q.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
             try:
                 value = float(value) if value is not None else 0.0
-                self.controller.add_score(self.stage_id,
-                                          question_id,
-                                          value)
+                self.add_score(question_id, value)
             except ValueError:
-                self.controller.add_score(self.stage_id,
-                                          question_id,
-                                          0.0)
+                self.add_score(question_id, 0.0)
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''
-            self.controller.add_feedback(self.stage_id,
-                                         question_id,
-                                         value)
+            self.add_feedback(question_id, value)

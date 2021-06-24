@@ -306,6 +306,7 @@ class Model(object):
     def add_score(self, stage_id, model_id, value):
         if stage_id not in self.__dict__['raw_scores']:
             self.__dict__['raw_scores'][stage_id] = OrderedDict()
+        
         self.__dict__['raw_scores'][stage_id][model_id] = value
 
     def add_feedback(self, stage_id, model_id, value):
@@ -414,11 +415,7 @@ class Model(object):
                                                                   None)
             
             for stage_id, stage_scores in self.raw_scores.items():
-                stage_score = 0.0
-                for model_score in stage_scores.values():
-                    if not isinstance(model_score, float):
-                        model_score = 0.0
-                    stage_score += model_score
+                stage_score = self.__getattribute__(f'score_{stage_id}')
 
                 data[f'stage_{stage_id}_score'] = stage_score
                 data[f'stage_{stage_id}_score_max'] = \
@@ -437,13 +434,45 @@ class Model(object):
         try:
             if attr == '__dict__':
                 return super(Model, self).__getattribute__(attr)
+            elif attr.startswith('score_'):
+                stage_id = attr[6:]
+
+                score = 0.0
+                if stage_id in self.__dict__['raw_scores']:
+                    scores = self.__dict__['raw_scores'][stage_id]
+    
+                    for this_score in scores.values():
+                        if this_score:
+                            score += float(this_score)
+
+                s_max = config.ini[f'stage_{stage_id}'].getfloat(
+                    'score_max', None)
+                if s_max is not None and score > s_max:
+                    score = s_max
+
+                s_min = config.ini[f'stage_{stage_id}'].getfloat(
+                    'score_min', None)
+                if s_min is not None and score < s_min:
+                    score = s_min
+                        
+                return score
             elif attr == 'score':
                 score = 0
-                for stage_scores in self.__dict__['raw_scores'].values():
-                    scores = list(stage_scores.values())
-                    for this_score in scores:
-                        if this_score:
-                            score += this_score
+                
+                raw_scores = self.__dict__['raw_scores']
+                for stage_id in raw_scores.keys():
+                    score += self.__getattribute__(f'score_{stage_id}')
+
+                s_max = config.ini[f'assessment'].getfloat(
+                    'score_max', None)
+                if s_max is not None and score > s_max:
+                    score = s_max
+
+                s_min = config.ini[f'assessment'].getfloat(
+                    'score_min', None)
+                if s_min is not None and score < s_min:
+                    score = s_min
+                    
                 return score
             elif attr == 'feedback':
                 feedback = ''
