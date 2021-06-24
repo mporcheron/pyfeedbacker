@@ -14,8 +14,14 @@ import urwid
 import signal
 
 
-class WindowWidget:
-    def __init__(self, controller, model):
+
+class Window:
+    SIDEBAR_STAGES, SIDEBAR_STATS = range(0,2)
+    
+    def __init__(self, controller, model, sidebar=SIDEBAR_STAGES):
+        """
+        The main application UI.
+        """
         self.controller = controller
         self.model      = model
 
@@ -37,7 +43,13 @@ class WindowWidget:
             ('bg',             '', '', '', 'g7',        '#000')]
 
         self.header  = uh.HeaderWidget(controller, model, self)
-        self.sidebar = us.SidebarWidget(controller, model, self)
+        
+        if sidebar is Window.SIDEBAR_STAGES:
+            self.sidebar = us.SidebarStagesWidget(controller, model, self)
+        elif sidebar is Window.SIDEBAR_STATS:
+            raise NotImplementedError('Statistics sidebar not implemented')
+        else:
+            raise NotImplementedError('Unknown sidebar')
 
         self._progression_possible = {}
         self._show_continue_button = []

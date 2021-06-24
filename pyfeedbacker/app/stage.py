@@ -100,7 +100,11 @@ class StageResult:
     RESULT_PARTIAL  = 4
 
     def __init__(self, result):
-        """Store the result from a stage"""
+        """
+        Store the result from a stage. This should only be returned
+        when a stage can no longer change. So stages such as forms may never
+        return this because the form is always mutable.
+        """
         self.result       = result
         self.score        = 0
         self.feedback     = ''
@@ -108,15 +112,31 @@ class StageResult:
         self.output       = OutputNone()
 
     def add_score(self, score):
+        """
+        Add to the score for this stage. Any min/max limits on score are 
+        applied in the model and not here.
+        """
         self.score       += score
 
     def add_feedback(self, feedback):
+        """
+        Add to the feedback for this stage.
+        """
         self.feedback    += ''
 
     def set_output(self, output):
+        """
+        Set the final output for the stage. This should be one of the Output*
+        classes in app.stag.e
+        """
         self.output      = output
 
     def set_error(self, error):
+        """
+        If the stage failed to execute, show an error prompt in an alert. If the
+        stage is marked as required to continue to execute in the configuration
+        file, the user will have to abandon marking.
+        """
         self.error       += error
 
 
@@ -125,10 +145,17 @@ class HandlerBase:
     TAG = '__'
 
     def __init__(self):
+        """
+        A handler is a class that a stage should inherit from and implement
+        the required functions. Every stage must be a handler of some form.
+        """
         self.output          = OutputNone()
 
     def set_framework(self, controller):
-        """Set the controller (and by proxy the model and the view)"""
+        """
+        Set the controller (and by proxy the model and the view). Called by
+        the marker controller.
+        """
         self.controller = controller
         self.model      = controller.model
         self.view       = controller.view
@@ -139,12 +166,23 @@ class HandlerBase:
         self.dir_output      = self.model.dir_output
 
     def update_ui(self):
+        """
+        Trigger a UI update at any time for this stage.
+        """
         return self.controller.set_stage_output(self.TAG, self.output)
 
     def run(self):
+        """
+        Execute the stage. Return a StageResult if the stage execution finished.
+        """
         pass
 
     def refresh(self):
+        """
+        Refresh the stage. This may need to be called if the stage draws on 
+        data that may change externally (e.g. the model, or some part of the 
+        submission may change due to an external event).
+        """
         pass
 
 
@@ -157,18 +195,31 @@ class HandlerNone(HandlerBase):
 class HandlerEditText(HandlerBase):
     def __init__(self,
                  read_only = False):
-        super(HandlerEditText, self).__init__()
+        """
+        Show 1 or more edit text fields that allow the user to read/edit
+        text.
+        """
+        if read_only:
+            raise NotImplementedError('Read only text is not implemented yet')
+
+        super().__init__()
 
 
 
 class HandlerReadText(HandlerEditText):
     def __init__(self):
-        super(HandlerReadText, self).__init__(True)
+        """
+        Show 1 or more text fields that allow the user to read text.
+        """
+        super().__init__(True)
 
 
 
 class HandlerForm(HandlerBase):
     def __init__(self):
+        """
+        Show an interactive form the user can complete.
+        """
         self.output = OutputForm(self.TAG)
 
 
@@ -185,6 +236,10 @@ class HandlerProcess(HandlerBase):
 
 class StageError(Exception):
     def __init__(self, mesg):
+        """
+        An error that occurs during stage execution that means the stage
+        has failed.
+        """
         self.mesg = mesg
 
     def __str(self):
@@ -194,6 +249,10 @@ class StageError(Exception):
 
 class StageIgnorableError(StageError):
     def __init__(self, mesg):
+        """
+        A warning that occurs during stage execution but the stage/user can
+        continue if they desire.
+        """
         self.mesg = mesg
 
     def __str(self):

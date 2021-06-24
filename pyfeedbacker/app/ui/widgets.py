@@ -6,7 +6,7 @@ import urwid
 
 class SimpleButton(urwid.Button):
     """
-    Custom Urwid button to hide cursor
+    Custom Urwid button without a visible cursor,
 
     Based on https://stackoverflow.com/a/44682928
     """
@@ -30,15 +30,17 @@ class SimpleButton(urwid.Button):
         self.set_label(label)
 
     class ButtonLabel(urwid.SelectableIcon):
-        '''
-        use Drunken Master's trick to move the cursor out of view
-        '''
+        """
+        Use Drunken Master's trick to move the cursor out of view to hide it.
+        """
         def set_text(self, label):
-            '''
-            set_text is invoked by Button.set_label
-            '''
+            """
+            set_text is invoked by Button.set_label; we move the cursor position
+            out of view and cascade to the urwid.Button set_text() function
+            """
             self.__super.set_text(label)
             self._cursor_position = len(label) + 1
+
 
 
 class AutoWidthButton(SimpleButton):
@@ -49,15 +51,17 @@ class AutoWidthButton(SimpleButton):
                  label,
                  on_press  = None,
                  user_data = None):
-
+        """
+        Create a button that responds to the width of the content as opposed to
+        the size of the container.
+        """
         self._width = len(AutoWidthButton.button_left) + \
                       len(AutoWidthButton.button_right) + \
                       len(label)
 
         label = label
-        super(AutoWidthButton, self).__init__(label,
-                                              on_press,
-                                              user_data)
+        super().__init__(label, on_press, user_data)
+
 
 
 class JumpablePile(urwid.Pile):
@@ -88,7 +92,8 @@ class JumpablePile(urwid.Pile):
                 or key == 'meta up':
             self.focus_position = first_focus_position
         else:
-            return super(JumpablePile, self).keypress(size, key)
+            return super().keypress(size, key)
+
 
 
 class JumpableColumns(urwid.Columns):
@@ -119,7 +124,8 @@ class JumpableColumns(urwid.Columns):
                 or key == 'meta b':
             self.focus_position = first_focus_position
         else:
-            return super(JumpableColumns, self).keypress(size, key)
+            return super().keypress(size, key)
+
 
 
 class EscableListBox(urwid.ListBox):
@@ -136,22 +142,37 @@ class EscableListBox(urwid.ListBox):
         super(EscableListBox, self).__init__(body)
 
     def keypress(self, size, key):
+        """
+        If escape is pressed, the escape_to callback passed to __init__()
+        is called, otherwise cascade to the ListBox keypress handler.
+        """
         if key == 'esc':
             self.escape_to()
         else:
-            return super(EscableListBox, self).keypress(size, key)
+            return super().keypress(size, key)
+
 
 
 class CentredRadioButton(urwid.RadioButton):
     
-    def __init__(self, group, state="first True",
-                 on_state_change=None, user_data=None):
-        super(CentredRadioButton, self).__init__(group, '', state,
-                                                 on_state_change, user_data)
-                                                 
+    def __init__(self,
+                 group,
+                 state           = "first True",
+                 on_state_change = None,
+                 user_data       = None):
+        """
+        A radio button that has no label and centres the checkbox in the 
+        centre.
+        """
+        super().__init__(group, '', state, on_state_change, user_data)
                                                  
     def set_state(self, state, do_callback=True):
-        self.__super.set_state(state, do_callback)
+        """
+        Cascade to the RadioButton (and CheckBox) state setting functions
+        and then go and replace the widget ourselves with two empty labels
+        either side of the checkbox.
+        """
+        super().set_state(state, do_callback)
         self._w = urwid.Columns( [
                     self._label,
                     ('fixed', self.reserve_columns, self.states[state] ),

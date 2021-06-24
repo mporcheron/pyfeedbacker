@@ -8,13 +8,14 @@ from math import lcm
 import urwid
 
 
+
 class PopupDialog:
     DIALOG_CANCEL = 0
     DIALOG_QUIT   = 1
 
     def __init__(self, title, text):
         """
-        Create a pop-up dialog
+        Create a pop-up dialog to be shown floating over the UI.
         """
         self.title   = title
         self.text    = text
@@ -25,7 +26,7 @@ class PopupDialog:
         """
         Based on https://github.com/urwid/urwid/blob/master/examples/dialog.py
 
-        Modified to fit customisable actions
+        Modified to fit customisable actions.
         """
         l = []
         widths = []
@@ -37,7 +38,7 @@ class PopupDialog:
 
         for name, action in buttons:
             padded_name = (' ' * (int(((width - len(name))/2)))) + name
-            b = uw.SimpleButton(padded_name, self.respond_to_button)
+            b = uw.SimpleButton(padded_name, self._on_button_press)
             b.action = action
             b = urwid.AttrWrap(b, 'selectable', 'focus')
             l.append(b)
@@ -45,7 +46,10 @@ class PopupDialog:
         buttons = urwid.GridFlow(l, width + 6, 3, 1, 'center')
         self.buttons = [urwid.Pile([urwid.Divider(), buttons], focus_item = 1)]
 
-    def respond_to_button(self, button):
+    def _on_button_press(self, button):
+        """
+        Callback when a button is pressed in the popup dialog.
+        """
         if isinstance(button.action, int):
             if button.action == PopupDialog.DIALOG_CANCEL:
                 self.loop.widget = self.window
@@ -56,10 +60,15 @@ class PopupDialog:
             button.action()
 
     def show(self, loop, window):
+        """
+        Show the popup over the main frame.
+        """
         self.loop   = loop
         self.window = window
 
-        w = urwid.Pile([urwid.Text(('popup', self.text))] + self.buttons)
+        w = urwid.Pile([urwid.Divider(),
+                        urwid.Text(('popup', self.text), 'center')] + \
+                        self.buttons + [urwid.Divider()])
         w = urwid.LineBox(w, self.title)
 
         self.loop.widget =  urwid.Overlay(w,

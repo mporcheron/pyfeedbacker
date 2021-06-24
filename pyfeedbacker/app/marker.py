@@ -14,10 +14,12 @@ import threading
 
 
 class Controller:
-    
-    def __init__(self):
-        """Controller for marking a submission by a student"""
 
+    def __init__(self):
+        """
+        Controller for marking a submission by a student and generating scores
+        and feedback, separated by 'stages'.
+        """
         # containers for the marking stages
         self.stages_ids      = []
         self.stages          = {}
@@ -25,41 +27,41 @@ class Controller:
 
         self._next_stage_id = None
         self.current_stage = None
-        
+
         # configuration information
         self.debug = config.ini['app'].getboolean('debug', False)
-            
+
         default_ini = config.ini['assessment']
         self.progress_on_success = default_ini.getboolean(
             'progress_on_success', True)
         self.halt_on_error       = default_ini.getboolean(
             'halt_on_error', False)
-    
+
     def set_model(self, model):
         """Set the model that'll store information about a submission
         and then store scores/marks and feedback.
         """
         self.model = model
         return self
-    
+
     def set_view(self, view):
         """Set the view that will handle the entire interface for the
         application.
         """
         self.view = view
         return self
-    
+
     def start(self):
         self.load_stages()
         self.view.run()
-    
+
     def load_stages(self):
         """Load all stages from the configuration file"""
         stages = config.ini['assessment']['stages'].split(',')
         for stage_id in stages:
-            stage_id  = stage_id.strip() 
+            stage_id  = stage_id.strip()
             s_ini = config.ini['stage_' + stage_id]
-            
+
             stage_info = stage.StageInfo(
                 controller    = self,
                 stage_id      = stage_id,
@@ -76,7 +78,7 @@ class Controller:
             self.stages[stage_id] = stage_info
 
         self.view.append_stages(self.stages)
-        
+
     def select_stage(self, stage_id):
         """
         Select a stage and:
@@ -100,7 +102,7 @@ class Controller:
         if self._next_stage_id is None:
             self._next_stage_id = self.stages_ids[0]
             self.execute_stage(self._next_stage_id)
-    
+
     def execute_stage(self, stage_id=None):
         """
         Execute a stage if it hasn't been executed yet and is ready for
@@ -136,7 +138,7 @@ class Controller:
         state = stage.StageInfo.STATE_ACTIVE
 
         self.view.show_stage(stage_id, stage_info.label)
-       
+
         instance = None
         try:
             instance = stage_info.handler()
@@ -188,7 +190,7 @@ class Controller:
     def refresh_stage(self, stage_id):
         if stage_id not in self.stages_handlers:
             raise stage.StageIgnorableError('Stage has not yet executed.')
-        
+
         instance = self.stages_handlers[stage_id]
         instance.refresh()
         self.set_stage_output(stage_id, instance.output)
@@ -212,9 +214,9 @@ class Controller:
         if result.result == stage.StageResult.RESULT_PASS:
             state = stage.StageInfo.STATE_COMPLETE
             self.view.set_stage_state(stage_id, state)
-            
+
             self.set_stage_output(stage_id, result.output)
-            
+
             if self.progress_on_success:
                 self.progress()
             else:
@@ -250,7 +252,7 @@ class Controller:
             self.model.add_feedback(stage_id,
                                     '__post',
                                     feedback_post)
-        
+
     def set_stage_output(self, stage_id, output):
         self.view.set_stage_output(stage_id, output)
 
@@ -272,8 +274,8 @@ class Model(object):
     FILE_MARKS    = 'marks.csv'
     FILE_SCORES   = 'scores.csv'
     FILE_FEEDBACK = '##type##-feedback-##submission##.txt'
-    
-    def __init__(self, 
+
+    def __init__(self,
                  submission,
                  dir_submissions,
                  dir_temp,
@@ -284,15 +286,15 @@ class Model(object):
             'dir_submissions': dir_submissions,
             'dir_temp':        dir_temp,
             'dir_output':      dir_output,
-        
+
             'raw_scores':      OrderedDict(),
             'raw_feedback':    OrderedDict()
         }
-        
+
         score_init = config.ini['assessment'].getfloat('score_init', None)
         if score_init:
             self.add_score('0', '0', score_init)
-        
+
         feedback_pre = config.ini['assessment'].get('feedback_pre', None)
         if feedback_pre:
             self.add_feedback('0', '0', feedback_pre)
@@ -300,7 +302,7 @@ class Model(object):
     def add_score(self, stage_id, model_id, value):
         if stage_id not in self.__dict__['raw_scores']:
             self.__dict__['raw_scores'][stage_id] = OrderedDict()
-        
+
         self.__dict__['raw_scores'][stage_id][model_id] = value
 
     def add_feedback(self, stage_id, model_id, value):
@@ -316,7 +318,7 @@ class Model(object):
         if only_save_marks:
             file_title = ' marks'
             file_name = Model.FILE_MARKS
-        
+
         title_header_str = config.ini['app']['name'] + file_title
 
         stage_header = ['submission']
@@ -335,12 +337,12 @@ class Model(object):
             for score_id in stage_scores.keys():
                 score_header.append(str(score_id))
         score_header_str = ','.join(score_header) + ',final'
-        
+
         path = self.dir_output +  os.sep + file_name
         print_header = True
         try:
             lines = list(open(path, 'r'))
-            
+
             if len(lines) < 3:
                 print_header = True
             else:
@@ -362,13 +364,13 @@ class Model(object):
                         else:
                             print_header = True
                             break
-                       
+
                     window[0] = window[1]
                     window[1] = window[2]
                     window[2] = line.strip()
         except FileNotFoundError:
             pass
-        
+
         with open(path, 'a') as f:
             if print_header:
                 f.write(title_header_str + '\n')
@@ -384,11 +386,11 @@ class Model(object):
             f.write(','.join(scores) + ',' + str(float(self.score)))
 
             f.write('\n')
-            
+
         if not only_save_marks:
             if config.ini['assessment'].getboolean('scores_are_marks', False):
                 self.save_scores(True)
-        
+
 
     def save_feedback(self):
         path = self.dir_output +  os.sep + Model.FILE_FEEDBACK.replace(
@@ -400,14 +402,14 @@ class Model(object):
 
         if not config.ini['assessment'].getboolean('scores_are_marks', False):
             return
-            
+
         path_final = path.replace('##type##', 'final')
         with open(path_final, 'w') as f:
             data = {}
             data['score'] = float(self.score)
             data['score_max'] = config.ini['assessment'].getfloat('score_max',
                                                                   None)
-            
+
             for stage_id, stage_scores in self.raw_scores.items():
                 stage_score = self.__getattribute__(f'score_{stage_id}')
 
@@ -434,7 +436,7 @@ class Model(object):
                 score = 0.0
                 if stage_id in self.__dict__['raw_scores']:
                     scores = self.__dict__['raw_scores'][stage_id]
-    
+
                     for this_score in scores.values():
                         if this_score:
                             score += float(this_score)
@@ -448,11 +450,11 @@ class Model(object):
                     'score_min', None)
                 if s_min is not None and score < s_min:
                     score = s_min
-                        
+
                 return score
             elif attr == 'score':
                 score = 0
-                
+
                 raw_scores = self.__dict__['raw_scores']
                 for stage_id in raw_scores.keys():
                     score += self.__getattribute__(f'score_{stage_id}')
@@ -466,7 +468,7 @@ class Model(object):
                     'score_min', None)
                 if s_min is not None and score < s_min:
                     score = s_min
-                    
+
                 return score
             elif attr == 'feedback':
                 feedback = ''
@@ -492,39 +494,40 @@ class Model(object):
 class UrwidView:
     def __init__(self, controller, model):
         """
-        Public API for the pyfeedbacker UI, which is all self-contained 
+        Public API for the pyfeedbacker UI, which is all self-contained
         in a separate package (app.ui) using Urwid
         """
         self.controller = controller
         self.model      = model
-        self.window     = window.WindowWidget(controller, model)
+        self.window     = window.Window(controller,
+                                              model,
+                                              window.Window.SIDEBAR_STAGES)
 
     def run(self):
-        """Start the view"""
         self.window.run()
 
-    def set_score(self, score):
-        self.window.set_score(score)
-        
     def append_stage(self, stage):
         self.window.append_stage(stage)
-        
+
     def append_stages(self, stages):
         for stage_id, stage in stages.items():
             self.append_stage(stage)
-    
+
     def show_alert(self, title, text, halt_execution=False):
         self.window.show_alert(title, text, halt_execution)
-    
+
     def show_stage(self, stage_id, label):
         self.window.show_stage(stage_id, label)
-        
+
+    def set_score(self, score):
+        self.window.set_score(score)
+
     def set_stage_state(self, stage_id, state):
         self.window.set_stage_state(stage_id, state)
-        
+
     def set_stage_output(self, stage_id, output):
         self.window.set_stage_output(stage_id, output)
-    
+
     def quit(self):
         self.window.quit()
 

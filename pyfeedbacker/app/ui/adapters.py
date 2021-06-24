@@ -8,6 +8,13 @@ import urwid
 
 class AdapterNone:
     def __init__(self, stage_id, controller, model, window):
+        """
+        Root adapter class that will simply generate the a fixed text output
+        error message.
+        
+        Adapters convert output, stored in Output* classes in app.stage to
+        urwid widgets.
+        """
         self.output    = [urwid.Text('This stage has no output.')]
 
         self.stage_id   = stage_id
@@ -25,14 +32,24 @@ class AdapterNone:
             self.add_score('__init', score_init)
 
     def set(self, output):
+        """
+        Update the output, forcing the adapter to re-adapt it to urwid
+        components.
+        """
         self.output = [urwid.Text('This stage has no output adapter.')]
 
     def add_score(self, model_id, score):
+        """
+        Add to the submission's score (calls through to the model).
+        """
         self.controller.add_score(self.stage_id,
                                   model_id,
                                   score)
 
     def add_feedback(self, model_id, feedback):
+        """
+        Add to the submission's feedback (calls through to the model).
+        """
         self.controller.add_feedback(self.stage_id,
                                      model_id,
                                      feedback)
@@ -42,7 +59,9 @@ class AdapterNone:
 class AdapterBase(AdapterNone):
     def set(self, output):
         """
-        Sets an output as a pile of contents
+        Sets an output as a list of contents but nothing else. Pretty much
+        every adapter will follow this pattern, which is useful for passing
+        into an urwid Pile.
         """
         if isinstance(output, list):
             self.output = output
@@ -54,7 +73,7 @@ class AdapterBase(AdapterNone):
 class AdapterText(AdapterBase):
     def set(self, text):
         """
-        Set a stage as a series of urwid Text objects
+        Set a stage as a series of urwid Text widgets.
         """
         if isinstance(text, stage.OutputNone):
             text = ('An error has occured that has presented this stage from '
@@ -70,14 +89,15 @@ class AdapterText(AdapterBase):
         for line in text:
             contents.append(urwid.Text(line))
 
-        super(AdapterText, self).set(contents)
+        super().set(contents)
 
 
 
 class AdapterEditText(AdapterBase):
     def set(self, texts):
         """
-        Set a stage as a series of editable text fields
+        Set a stage as a series of editable text fields (urwid EditText
+        widgets).
         """
         contents = []
         if isinstance(texts, stage.OutputNone):
@@ -98,9 +118,13 @@ class AdapterEditText(AdapterBase):
                 contents.append(urwid.Divider())
 
 
-        super(AdapterEditText, self).set(contents)
+        super().set(contents)
 
     def _on_edit_change(self, w, old_value, user_data):
+        """
+        Callback when the user has updated the text widget, which then
+        calls the specific event callback function.
+        """
         value = w.get_edit_text()
         value = value if value is not None else ''
         self.outputedittext.callback(user_data[0], user_data[1], value)
@@ -112,7 +136,7 @@ class AdapterEditText(AdapterBase):
 class AdapterChecklist(AdapterText):
     def set(self, output):
         """
-        Updates the output for a stage that is a checklist.
+        Updates the output for a stage that is a checklist of computed progress.
         """
         contents = []
         for state, item in output.progress:
@@ -121,14 +145,17 @@ class AdapterChecklist(AdapterText):
             line += item
             contents.append(line)
 
-        super(AdapterChecklist, self).set(contents)
+        super().set(contents)
 
 
 
 class AdapterForm(AdapterBase):
     def set(self, output):
         """
-        Create an interactive form
+        Create an interactive form to be completed by the user. Can contain
+        scale-based questions, score input text fields, feedback input fields
+        and weight input text fields (the latter three are all simple EditText
+        widgets).
         """
         self.outputform = output
 
@@ -190,7 +217,6 @@ class AdapterForm(AdapterBase):
             if question.required:
                 text += ' *'
                 self.required_not_completed.add(question_id)
-
 
             # existing value in the model?
             try:
@@ -273,9 +299,13 @@ class AdapterForm(AdapterBase):
 
         self.ui_focus = [1]
 
-        super(AdapterForm, self).set(contents)
+        super().set(contents)
 
     def status_check(self):
+        """
+        Determine if all the required questions have been completed and if
+        so, update the status of this stage.
+        """
         if len(self.required_not_completed) == 0:
             focus_path = self.window.frame.get_focus_path()
 
@@ -286,6 +316,10 @@ class AdapterForm(AdapterBase):
             self.window.frame.set_focus_path(focus_path)
 
     def _on_radio_check(self, w, state, user_data):
+        """
+        Callback when the user has selected a radio in a group (called for
+        both when one is selected and one is deselected).
+        """
         self._last_selected_widget = w
 
         question_id  = user_data[0]
@@ -307,6 +341,10 @@ class AdapterForm(AdapterBase):
         self.status_check()
 
     def _on_edit_change(self, w, old_value, question_id):
+        """
+        Callback for when any edit text box is updated. Appropriate action
+        depends on what the box is containing.
+        """
         if self._skip_on_edit_change == w:
             self._skip_on_edit_change = None
             return
