@@ -140,3 +140,4 @@ class EscableListBox(urwid.ListBox):
             self.escape_to()
         else:
             return super(EscableListBox, self).keypress(size, key)
+

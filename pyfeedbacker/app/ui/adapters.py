@@ -224,9 +224,14 @@ class AdapterForm(AdapterBase):
                     checked = False
                     if existing_score_f == float(score):
                         checked = True
+                        
+                    label = question.scale[score_id]
+                    if config.ini['assessment'].getboolean('scores_are_marks',
+                                                           False):
+                        label = str(score) + max_score
 
                     button = urwid.RadioButton(radio_group,
-                                               str(score) + max_score,
+                                               label,
                                                checked,
                                                self._on_radio_check,
                                                (question_id, score_id))
