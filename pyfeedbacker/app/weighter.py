@@ -12,11 +12,10 @@ import sys
 import threading
 
 
-
 class Controller:
     
     def __init__(self):
-        """Controller for marking a submission by a student"""
+        """Controller for assigning a weighting to submission components"""
 
         # containers for the marking stages
         self.stages_ids      = []
@@ -170,6 +169,11 @@ class Controller:
             state = stage.StageInfo.STATE_ACTIVE
             self.view.set_stage_state(self.current_stage[0], state)
             self.set_stage_output(self.current_stage[0], instance.output)
+
+            # forms essentially allow you to always progress
+            # FIXME need proper reporting on completion
+            # next_stage_id = self.get_next_stage_id(stage_id)
+            # self._next_stage_id = next_stage_id
         else:
             state  = stage.StageInfo.STATE_ACTIVE
             self.view.set_stage_state(self.current_stage[0], state)
@@ -245,6 +249,7 @@ class Controller:
                                  result.error,
                                  stage_info.halt_on_error)
 
+        # add feedback
         feedback_post = stage_info.feedback_post
         if feedback_post is not None and len(feedback_post.strip()) > 0:
             self.model.add_feedback(stage_id,
@@ -273,20 +278,13 @@ class Model(object):
     FILE_SCORES   = 'scores.csv'
     FILE_FEEDBACK = '##type##-feedback-##submission##.txt'
     
-    def __init__(self, 
-                 submission,
-                 dir_submissions,
-                 dir_temp,
+    def __init__(self,
                  dir_output):
-        """Store information about the current submission being marked."""
+        """Load raw scores for applying weighitng to"""
         self.__dict__ = {
-            'submission':      submission,
-            'dir_submissions': dir_submissions,
-            'dir_temp':        dir_temp,
             'dir_output':      dir_output,
         
             'raw_scores':      OrderedDict(),
-            'raw_feedback':    OrderedDict()
         }
         
         score_init = config.ini['assessment'].getfloat('score_init', None)
@@ -500,7 +498,6 @@ class UrwidView:
         self.window     = window.WindowWidget(controller, model)
 
     def run(self):
-        """Start the view"""
         self.window.run()
 
     def set_score(self, score):
@@ -518,12 +515,6 @@ class UrwidView:
     
     def show_stage(self, stage_id, label):
         self.window.show_stage(stage_id, label)
-        
-    def set_stage_state(self, stage_id, state):
-        self.window.set_stage_state(stage_id, state)
-        
-    def set_stage_output(self, stage_id, output):
-        self.window.set_stage_output(stage_id, output)
     
     def quit(self):
         self.window.quit()
