@@ -22,15 +22,26 @@ parser.add_argument(
     '-dt', '--dir-temp',
     type     = str, 
     default  = './_temp/',
-    help     = 'Directory where a submission is copied during feedback generation')
+    help     = 'Directory where a submission is copied to during marking')
 
 parser.add_argument(
     '-m', '--mark',
     type     = str,
-    help     = 'Submission for feedback generation (name of a directory in --dir-submissions)')
+    help     = 'Submission for marking (name of a dir in --dir-submissions)')
+
+parser.add_argument(
+    '-w', '--weight',
+    action   = 'store_true',
+    help     = 'Run weighting application for converting scores to marks')
 
 args = vars(parser.parse_args())
-pyfeedbacker.start_marker(submission      = args['mark'],
-                          dir_submissions = args['dir_submissions'],
-                          dir_temp        = args['dir_temp'],
-                          dir_output      = args['dir_output'])
+
+if args['mark'] and not args['weight']:
+    pyfeedbacker.start_marker(submission      = args['mark'],
+                              dir_submissions = args['dir_submissions'],
+                              dir_temp        = args['dir_temp'],
+                              dir_output      = args['dir_output'])
+elif not args['mark'] and args['weight']:
+    pyfeedbacker.start_weighter(dir_output    = args['dir_output'])
+else:
+    raise AttributeError('Cannot run marking and weighting apps simulatenously')

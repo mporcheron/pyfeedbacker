@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from . import config, view
+from . import config
 
 import importlib
 import json
@@ -89,7 +89,6 @@ class StageInfo:
 
     def set_state(self, state):
         self.state = state
-        # self.view.set_stage_state(self.stage_id, state) TODO FIX
 
 
 

@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
 from . import config
-from . import view
 from . import stage
+from .ui import window
 
 from collections import OrderedDict
 
@@ -10,6 +10,7 @@ import importlib
 import os
 import sys
 import threading
+
 
 
 class Controller:
@@ -169,11 +170,6 @@ class Controller:
             state = stage.StageInfo.STATE_ACTIVE
             self.view.set_stage_state(self.current_stage[0], state)
             self.set_stage_output(self.current_stage[0], instance.output)
-
-            # forms essentially allow you to always progress
-            # FIXME need proper reporting on completion
-            # next_stage_id = self.get_next_stage_id(stage_id)
-            # self._next_stage_id = next_stage_id
         else:
             state  = stage.StageInfo.STATE_ACTIVE
             self.view.set_stage_state(self.current_stage[0], state)
@@ -250,7 +246,6 @@ class Controller:
                                  result.error,
                                  stage_info.halt_on_error)
 
-        # add feedback
         feedback_post = stage_info.feedback_post
         if feedback_post is not None and len(feedback_post.strip()) > 0:
             self.model.add_feedback(stage_id,
@@ -492,3 +487,47 @@ class Model(object):
                 return super(Model, self).__getattribute__(attr)
         except KeyError:
             return None
+
+
+
+class UrwidView:
+    def __init__(self, controller, model):
+        """
+        Public API for the pyfeedbacker UI, which is all self-contained 
+        in a separate package (app.ui) using Urwid
+        """
+        self.controller = controller
+        self.model      = model
+        self.window     = window.WindowWidget(controller, model)
+
+    def run(self):
+        """Start the view"""
+        self.window.run()
+
+    def set_score(self, score):
+        self.window.set_score(score)
+        
+    def append_stage(self, stage):
+        self.window.append_stage(stage)
+        
+    def append_stages(self, stages):
+        for stage_id, stage in stages.items():
+            self.append_stage(stage)
+    
+    def show_alert(self, title, text, halt_execution=False):
+        self.window.show_alert(title, text, halt_execution)
+    
+    def show_stage(self, stage_id, label):
+        self.window.show_stage(stage_id, label)
+        
+    def set_stage_state(self, stage_id, state):
+        self.window.set_stage_state(stage_id, state)
+        
+    def set_stage_output(self, stage_id, output):
+        self.window.set_stage_output(stage_id, output)
+    
+    def quit(self):
+        self.window.quit()
+
+
+
