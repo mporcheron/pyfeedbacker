@@ -9,7 +9,7 @@ from app import config, marker, stage
 
 
 class StageInit(stage.HandlerPython):
-    TAG = u'init'
+    TAG = 'init'
     STEP_EMPTY, STEP_COPYSUB, STEP_COPYFWK = range(0,3)
 
     def __init__(self):
@@ -18,9 +18,9 @@ class StageInit(stage.HandlerPython):
         directory.
         """
         self.output = stage.OutputChecklist([
-            (False, u'Create/empty existing directory'),
-            (False, u'Copy submission into temporary directory'),
-            (False, u'Copy framework into temporary directory')
+            (False, 'Create/empty existing directory'),
+            (False, 'Copy submission into temporary directory'),
+            (False, 'Copy framework into temporary directory')
         ])
 
     def run(self):
@@ -60,36 +60,44 @@ class StageInit(stage.HandlerPython):
             shutil.rmtree(directory)
 
     def _create_empty_temp_directory(self):
-        if not os.path.isdir(self.dir_temp):
-            self.output.set_label(u'Create temporary directory',
+        dir_temp = os.path.abspath(self.dir_temp)
+
+        if not os.path.isdir(dir_temp):
+            self.output.set_label('Create temporary directory',
                                   StageInit.STEP_EMPTY)
 
-            os.mkdir(self.dir_temp)
-
-            self.output.set_state(True, StageInit.STEP_EMPTY)
+            os.mkdir(dir_temp)
+            if not os.path.isdir(self.dir_temp):
+                raise stage.StageError('Error copying submission: could ' + \
+                                       'not create: ' + dir_temp)
+            else:
+                self.output.set_state(True, StageInit.STEP_EMPTY)
 
         try:
-            self._rmdir(self.dir_temp)
+            self._rmdir(dir_temp)
 
             self.output.set_state(True, StageInit.STEP_EMPTY)
             self.update_ui()
         except FileNotFoundError:
-            raise stage.StageError(u'Could not find directory: ' + \
-                                    self.dir_temp)
+            raise stage.StageError('Could not find directory: ' + \
+                                   dir_temp)
 
     def _copy_submission_to_temp(self):
+        dir_temp = os.path.abspath(self.dir_temp)
+
         dir_submission = self.dir_submissions + os.sep + self.submission
+        dir_submission = os.path.abspath(dir_submission)
 
         try:
-            shutil.copytree(dir_submission, self.dir_temp)
+            shutil.copytree(dir_submission, dir_temp)
 
             self.output.set_state(True, StageInit.STEP_COPYSUB)
             self.update_ui()
         except FileNotFoundError:
-            raise stage.StageError(u'Error copying submission: '  + \
-                                    self.dir_temp + ' does not exist')
+            raise stage.StageError('Error copying submission: '  + \
+                                   dir_submission + ' does not exist')
         except shutil.Error as e:
-            raise stage.StageError(u'Error copying submission: ' + str(e))
+            raise stage.StageError('Error copying submission: ' + str(e))
 
     def _copy_framework_to_temp(self):
         if config.ini['stage_init'].get('framework_directory') != None:
@@ -106,7 +114,7 @@ class StageInit(stage.HandlerPython):
                         dst_file = os.path.join(dst_dir, file)
                         shutil.copy(src_file, dst_file)
             except shutil.Error as e:
-                raise stage.StageError(u'Error copying framework: '  + \
+                raise stage.StageError('Error copying framework: '  + \
                                         str(e))
             self.output.set_state(True, StageInit.STEP_COPYFWK)
         else:
