@@ -72,13 +72,13 @@ class StageInfo:
                   stage_id +
                   '.py in stages/ directory')
             self.handler    = HandlerNone
-            self.state      = Stage.STATE_FAILED
+            self.state      = StageInfo.STATE_FAILED
             self.selectable = False
         except AttributeError as e:
             print('Error loading class ' + class_name +
                   ' in stages/' + stage_id + '.py file:\n\t' + str(e))
             self.handler    = HandlerNone
-            self.state      = Stage.STATE_FAILED
+            self.state      = StageInfo.STATE_FAILED
             self.selectable = False
 
         self.score_min      = score_min
