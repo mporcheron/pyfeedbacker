@@ -322,9 +322,9 @@ class AdapterForm(AdapterBase):
         super().set(contents)
 
         if len(self.required_not_completed) == 0:
-            self.status_check()
+            self.status_check(False)
 
-    def status_check(self):
+    def status_check(self, refresh_output=True):
         """
         Determine if all the required questions have been completed and if
         so, update the status of this stage.
@@ -333,7 +333,8 @@ class AdapterForm(AdapterBase):
             focus_path = self.window.frame.get_focus_path()
 
             result = stage.StageResult(stage.StageResult.RESULT_PASS)
-            # result.set_output(self.outputform)
+            if refresh_output:
+                result.set_output(self.outputform)
             self.controller.report(result, self.stage_id)
 
             self.window.frame.set_focus_path(focus_path)

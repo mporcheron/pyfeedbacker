@@ -17,7 +17,7 @@ class FileSystemModel(model.BaseModel):
         Store all marking information in CSV, JSON and text files
         """
         super().__init__()
-        
+
         self._load_raw_data()
 
     def _load_raw_data(self):
@@ -30,21 +30,21 @@ class FileSystemModel(model.BaseModel):
                 if len(lines) < 3:
                     raise ValueError(f'The scores file {file_scores} seems  ' +
                                      'to have other data in it.')
-                                 
+
                 if not lines[0].startswith(self._get_csv_title(False)):
                     raise ValueError(f'The scores file {file_scores} seems ' +
                                      'to have a different header name?')
 
                 lines.pop(0)
-            
+
                 # read stage IDs and model IDs
                 current_stage_id = None
                 rows = list(csv.reader([lines[0], lines[1]]))
-            
+
                 # ignore submission column
                 rows[0].pop(0)
                 rows[1].pop(0)
-            
+
                 col_stage_id = ['']
                 last_stage_id = None
                 for cell in rows[0]:
@@ -53,15 +53,18 @@ class FileSystemModel(model.BaseModel):
                         last_stage_id = cell
                     else:
                         col_stage_id.append(last_stage_id)
-            
+
                 col_score_id = ['']
                 for pos, cell in enumerate(rows[1]):
                     col_score_id.append(cell)
 
                 lines.pop(0)
                 lines.pop(0)
-            
+
                 for row in csv.reader(lines):
+                    if len(row) == 0:
+                        continue
+
                     cells = list(row)
                     submission = cells[0]
                     cells.pop(0)
@@ -69,7 +72,7 @@ class FileSystemModel(model.BaseModel):
                     for pos, cell in enumerate(cells):
                         stage_id = col_stage_id[pos+1]
                         score_id = col_score_id[pos+1]
-                        
+
                         if stage_id == 'sum' and score_id == 'sum':
                             continue
 
@@ -81,7 +84,6 @@ class FileSystemModel(model.BaseModel):
         except FileNotFoundError:
             pass
 
-        
         # load feedbacks
         try:
             file_feedbacks = config.ini['model_file']['file_feedbacks']
@@ -103,29 +105,37 @@ class FileSystemModel(model.BaseModel):
     def _get_csv_header(self, marks):
         title_header_str = self._get_csv_title(marks)
 
-        stage_header = ['submission']
-        
+        # calculate mapping
+        mapping = OrderedDict()
         for submission, stages in self['scores'].items():
             for stage_id, stage_scores in stages.items():
-                stage_id_s = str(stage_id)
+                stage_id = str(stage_id)
 
-                if stage_id_s in stage_header:
-                    continue
+                for score_id, score in stage_scores.items():
+                    score_id = str(score_id)
 
-                stage_header.append(stage_id_s)
-                stage_header += [''] * (len(stage_scores) - 1)
+                    mapping[(stage_id, score_id)] = None
+        mapping = mapping.keys()
 
+        # generate headers
+        title_header_str = self._get_csv_title(marks)
+
+        stage_header = ['submission']
+        for (stage_id, score_id) in mapping:
+            if stage_id not in stage_header:
+                stage_header.append(stage_id)
+            else:
+                stage_header.append('')
+            
         stage_header_str = ','.join(stage_header) + ',sum'
 
         score_header = ['submission']
-        for submission, stages in self['scores'].items():
-            for stage_id, stage_scores in stages.items():
-                for score_id in stage_scores.keys():
-                    score_header.append(str(score_id))
+        for (stage_id, score_id) in mapping:
+            score_header.append(score_id)
         score_header_str = ','.join(score_header) + ',sum'
+        
+        return [title_header_str, stage_header_str, score_header_str, mapping]
 
-        return [title_header_str, stage_header_str, score_header_str]
-            
     def save(self):
         self._save_scores()
         self._save_feedbacks()
@@ -135,7 +145,7 @@ class FileSystemModel(model.BaseModel):
         if only_save_marks:
             file_name = config.ini['model_file']['file_marks']
 
-        (title_header_str, stage_header_str, score_header_str) = \
+        (title_header_str, stage_header_str, score_header_str, mapping) = \
             self._get_csv_header(only_save_marks)
 
         with open(file_name, 'w') as f:
@@ -145,12 +155,12 @@ class FileSystemModel(model.BaseModel):
 
             for submission, stages in self['scores'].items():
                 scores = [str(submission)]
-                for stage_scores in stages.values():
-                    for model_score in stage_scores.values():
-                        if not isinstance(model_score, float):
-                            model_score = 0.0
-                        scores.append(str(float(model_score)))
+                for (stage_id, score_id) in mapping:
+                    score = stages[stage_id][score_id]
+                    scores.append(str(float(score)))
+
                 f.write(','.join(scores) + ',' + str(stages.sum))
+                f.write('\n')
 
             f.write('\n')
 
