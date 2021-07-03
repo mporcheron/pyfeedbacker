@@ -20,10 +20,14 @@ class HeaderWidget(urwid.WidgetWrap):
         self.model      = model
         self.window     = window
 
-        self._show_marks = isinstance(controller, marker.Controller) and \
-            config.ini['assessment'].getboolean('scores_are_marks', False)
+        header_text = config.ini['app']['name']
 
-        header_text = config.ini['app']['name'] + f' ({model.submission})'
+        self._show_marks = False
+        if isinstance(controller, marker.Controller):
+            self._show_marks = \
+                config.ini['assessment'].getboolean('scores_are_marks', False)
+            header_text += f' ({controller.submission})'
+        
         header_text_widget = urwid.Text((header_text), align='left')
         header_text_len = len(header_text)
 

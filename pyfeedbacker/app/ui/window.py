@@ -238,7 +238,7 @@ class Window:
         output based on its type (see ui.adapters.py) and rewdraws the stage.
         """
         sa = None
-        if isinstance(output, stage.OutputNone):
+        if isinstance(output, stage.OutputNone) or output is None:
             sa = ua.AdapterNone(stage_id, self.controller, self.model, self)
         elif isinstance(output, stage.OutputText):
             sa = ua.AdapterText(stage_id, self.controller, self.model, self)

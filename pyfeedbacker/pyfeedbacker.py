@@ -1,21 +1,16 @@
 # -*- coding: utf-8 -*-
 
 from app import marker, weighter
+from app.model import fs
 
 
-def start_marker(submission, dir_submissions, dir_temp, dir_output):
-    c = marker.Controller()
-    m = marker.Model(submission,
-                     dir_submissions,
-                     dir_temp,
-                     dir_output)
+def start_marker(submission):
+    c = marker.Controller(submission)
+    m = fs.FileSystemModel()
     v = marker.UrwidView(c, m)
     c.set_model(m).set_view(v).start()
 
 
 
-def start_weighter(dir_output):
-    c = weighter.Controller()
-    m = weighter.Model(dir_output)
-    v = weighter.UrwidView(c, m)
-    c.set_model(m).set_view(v).start()
+def start_weighter():
+    raise NotImplementedError('Weighting application is not implemented yet')

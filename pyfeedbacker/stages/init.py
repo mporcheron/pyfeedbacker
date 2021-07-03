@@ -32,8 +32,6 @@ class StageInit(stage.HandlerPython):
 
             self._create_empty_temp_directory()
 
-            # time.sleep(1)
-
             self._copy_submission_to_temp()
 
             # time.sleep(1)
@@ -46,7 +44,8 @@ class StageInit(stage.HandlerPython):
             return result
 
         result = stage.StageResult(stage.StageResult.RESULT_PASS)
-        result.add_score(1)
+        result.add_score(2)
+        result.add_feedback('bloh')
         result.set_output(self.output)
         return result
 
@@ -60,14 +59,14 @@ class StageInit(stage.HandlerPython):
             shutil.rmtree(directory)
 
     def _create_empty_temp_directory(self):
-        dir_temp = os.path.abspath(self.dir_temp)
+        dir_temp = os.path.abspath(self._dir_temp)
 
         if not os.path.isdir(dir_temp):
             self.output.set_label('Create temporary directory',
                                   StageInit.STEP_EMPTY)
 
             os.mkdir(dir_temp)
-            if not os.path.isdir(self.dir_temp):
+            if not os.path.isdir(dir_temp):
                 raise stage.StageError('Error copying submission: could ' + \
                                        'not create: ' + dir_temp)
             else:
@@ -75,7 +74,7 @@ class StageInit(stage.HandlerPython):
 
         try:
             self._rmdir(dir_temp)
-
+            
             self.output.set_state(True, StageInit.STEP_EMPTY)
             self.update_ui()
         except FileNotFoundError:
@@ -83,9 +82,9 @@ class StageInit(stage.HandlerPython):
                                    dir_temp)
 
     def _copy_submission_to_temp(self):
-        dir_temp = os.path.abspath(self.dir_temp)
+        dir_temp = os.path.abspath(self._dir_temp)
 
-        dir_submission = self.dir_submissions + os.sep + self.submission
+        dir_submission = self._dir_submissions + os.sep + self.submission
         dir_submission = os.path.abspath(dir_submission)
 
         try:

@@ -15,19 +15,22 @@ class StageFinalise(stage.HandlerEditText):
     def run(self):
         self._generate_selective_feedback()
         
-        self.output = stage.OutputEditText(self.model.raw_feedback)
+        self._feedback = self.model['feedbacks'][self.submission]
+        
+        self.output = stage.OutputEditText(self._feedback.dict)
         self.output.set_callback(self.set_value)
+        self.skip_empty = True
         result = stage.StageResult(stage.StageResult.RESULT_PASS)
         result.set_output(self.output)
         return result
 
     def refresh(self):
         self._generate_selective_feedback()
-        self.output.texts = self.model.raw_feedback
+        self.output.texts = self._feedback.dict
 
     def _generate_selective_feedback(self):
         config_params = config.ini.items(f'stage_{StageFinalise.TAG}')
-        score = self.model.score
+        score = self.model['scores'][self.submission].sum
 
         bounds_regex = re.compile('selective_([0-9.]+)_([0-9.]+)')
         for key, value in config_params:
@@ -38,14 +41,15 @@ class StageFinalise(stage.HandlerEditText):
             if match:
                 lowerbound = float(match.group(1))
                 upperbound = float(match.group(2))
-                self.model.add_feedback(StageFinalise.TAG, 'selective', str(upperbound))
+
+                fb_submission = self.model['feedbacks'][self.submission]
+                fb_submission[StageFinalise.TAG]['selective'] = str(upperbound)
+
                 if score >= lowerbound and score <= upperbound:
-                    self.model.add_feedback(StageFinalise.TAG,
-                                            'selective',
-                                            value)
+                    fb_submission[StageFinalise.TAG]['selective'] = value
                     return
     
-        self.model.add_feedback(StageFinalise.TAG, 'selective', '')
+        self.set_value(StageFinalise.TAG, 'selective', '')
 
-    def set_value(self, stage_id, model_id, value):
-        self.model.add_feedback(stage_id, model_id, value)
+    def set_value(self, stage_id, feedback_id, value):
+        self.model['feedbacks'][self.submission][stage_id][feedback_id] = value

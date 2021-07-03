@@ -15,11 +15,13 @@ import threading
 
 class Controller:
 
-    def __init__(self):
+    def __init__(self, submission):
         """
         Controller for marking a submission by a student and generating scores
         and feedback, separated by 'stages'.
         """
+        self.submission      = submission
+        
         # containers for the marking stages
         self.stages_ids      = []
         self.stages          = {}
@@ -38,25 +40,38 @@ class Controller:
             'halt_on_error', False)
 
     def set_model(self, model):
-        """Set the model that'll store information about a submission
+        """
+        Set the model that'll store information about a submission
         and then store scores/marks and feedback.
         """
-        self.model = model
+        self.model     = model
+        self.scores    = model['scores'][self.submission]
+        self.feedbacks = model['feedbacks'][self.submission]
         return self
 
     def set_view(self, view):
-        """Set the view that will handle the entire interface for the
+        """
+        Set the view that will handle the entire interface for the
         application.
         """
         self.view = view
         return self
 
     def start(self):
-        self.load_stages()
+        self._load_stages()
         self.view.run()
 
-    def load_stages(self):
-        """Load all stages from the configuration file"""
+    def add_score(self, stage_id, score_id, value):
+        self.scores[stage_id][score_id] = value
+        self.view.set_score(self.scores.sum)
+
+    def add_feedback(self, stage_id, feedback_id, value):
+        self.feedbacks[stage_id][feedback_id] = value
+
+    def _load_stages(self):
+        """
+        Load all stages from the configuration file.
+        """
         stages = config.ini['assessment']['stages'].split(',')
         for stage_id in stages:
             stage_id  = stage_id.strip()
@@ -131,7 +146,7 @@ class Controller:
 
         # add feedback
         if stage_info.feedback_pre is not None:
-            self.model.add_feedback(stage_id, '__pre', stage_info.feedback_pre)
+            self.add_feedback(stage_id, '__pre', stage_info.feedback_pre)
 
         # retrieve the handler
         self.current_stage = (stage_id, stage_info)
@@ -165,9 +180,7 @@ class Controller:
             # add post feedback for None as report() is never called
             feedback_post = stage_info.feedback_post
             if feedback_post is not None and len(feedback_post.strip()) > 0:
-                self.model.add_feedback(stage_id,
-                                        '__post',
-                                        feedback_post)
+                self.add_feedback(stage_id, '__post', feedback_post)
         elif isinstance(instance, stage.HandlerForm):
             state = stage.StageInfo.STATE_ACTIVE
             self.view.set_stage_state(self.current_stage[0], state)
@@ -215,7 +228,8 @@ class Controller:
             state = stage.StageInfo.STATE_COMPLETE
             self.view.set_stage_state(stage_id, state)
 
-            self.set_stage_output(stage_id, result.output)
+            if result.output is not None:
+                self.set_stage_output(stage_id, result.output)
 
             if self.progress_on_success:
                 self.progress()
@@ -249,245 +263,14 @@ class Controller:
 
         feedback_post = stage_info.feedback_post
         if feedback_post is not None and len(feedback_post.strip()) > 0:
-            self.model.add_feedback(stage_id,
-                                    '__post',
-                                    feedback_post)
+            self.add_feedeback(stage_id, '__post', feedback_post)
 
     def set_stage_output(self, stage_id, output):
         self.view.set_stage_output(stage_id, output)
 
-    def add_score(self, stage_id, model_id, value):
-        self.model.add_score(stage_id, model_id, value)
-        self.view.set_score(self.model.score)
-
-    def add_feedback(self, stage_id, model_id, value):
-        self.model.add_feedback(stage_id, model_id, value)
-
     def save_and_close(self):
-        self.model.save_scores()
-        self.model.save_feedback()
+        self.model.save()
         self.view.quit()
-
-
-
-class Model(object):
-    FILE_MARKS    = 'marks.csv'
-    FILE_SCORES   = 'scores.csv'
-    FILE_FEEDBACK = '##type##-feedback-##submission##.txt'
-
-    def __init__(self,
-                 submission,
-                 dir_submissions,
-                 dir_temp,
-                 dir_output):
-        """Store information about the current submission being marked."""
-        self.__dict__ = {
-            'submission':      submission,
-            'dir_submissions': dir_submissions,
-            'dir_temp':        dir_temp,
-            'dir_output':      dir_output,
-
-            'raw_scores':      OrderedDict(),
-            'raw_feedback':    OrderedDict()
-        }
-
-        score_init = config.ini['assessment'].getfloat('score_init', None)
-        if score_init:
-            self.add_score('0', '0', score_init)
-
-        feedback_pre = config.ini['assessment'].get('feedback_pre', None)
-        if feedback_pre:
-            self.add_feedback('0', '0', feedback_pre)
-
-    def add_score(self, stage_id, model_id, value):
-        if stage_id not in self.__dict__['raw_scores']:
-            self.__dict__['raw_scores'][stage_id] = OrderedDict()
-
-        self.__dict__['raw_scores'][stage_id][model_id] = value
-
-    def add_feedback(self, stage_id, model_id, value):
-        if stage_id not in self.__dict__['raw_scores']:
-            self.__dict__['raw_feedback'][stage_id] = OrderedDict()
-
-        value = value.replace('\\n', '\n')
-        self.__dict__['raw_feedback'][stage_id][model_id] = value
-
-    def save_scores(self, only_save_marks=False):
-        file_title = ' scores'
-        file_name = Model.FILE_SCORES
-        if only_save_marks:
-            file_title = ' marks'
-            file_name = Model.FILE_MARKS
-
-        title_header_str = config.ini['app']['name'] + file_title
-
-        stage_header = ['submission']
-        for stage_id, stage_scores in self.raw_scores.items():
-            stage_header.append(str(stage_id))
-            first = True
-            for model_id in stage_scores.keys():
-                if first:
-                    first = False
-                    continue
-                stage_header.append('')
-        stage_header_str = ','.join(stage_header) + ',final'
-
-        score_header = ['submission']
-        for stage_id, stage_scores in self.raw_scores.items():
-            for score_id in stage_scores.keys():
-                score_header.append(str(score_id))
-        score_header_str = ','.join(score_header) + ',final'
-
-        path = self.dir_output +  os.sep + file_name
-        print_header = True
-        try:
-            lines = list(open(path, 'r'))
-
-            if len(lines) < 3:
-                print_header = True
-            else:
-                window = ['','','']
-                n = 0
-                for line in reversed(lines):
-                    if n < 3:
-                        window[n] = line.strip()
-                        n += 1
-                        continue
-
-                    if window[0].split(',')[0] == 'submission' and \
-                            window[1].split(',')[0] == 'submission':
-                        if window[2] == title_header_str and \
-                                window[1] == stage_header_str and \
-                                window[0] == score_header_str:
-                            print_header = False
-                            break
-                        else:
-                            print_header = True
-                            break
-
-                    window[0] = window[1]
-                    window[1] = window[2]
-                    window[2] = line.strip()
-        except FileNotFoundError:
-            pass
-
-        with open(path, 'a') as f:
-            if print_header:
-                f.write(title_header_str + '\n')
-                f.write(stage_header_str + '\n')
-                f.write(score_header_str + '\n')
-
-            scores = [str(self.submission)]
-            for stage_scores in self.raw_scores.values():
-                for model_score in stage_scores.values():
-                    if not isinstance(model_score, float):
-                        model_score = 0.0
-                    scores.append(str(float(model_score)))
-            f.write(','.join(scores) + ',' + str(float(self.score)))
-
-            f.write('\n')
-
-        if not only_save_marks:
-            if config.ini['assessment'].getboolean('scores_are_marks', False):
-                self.save_scores(True)
-
-
-    def save_feedback(self):
-        path = self.dir_output +  os.sep + Model.FILE_FEEDBACK.replace(
-            '##submission##', self.submission)
-
-        path_raw   = path.replace('##type##', 'raw')
-        with open(path_raw, 'w') as f:
-            f.write(self.feedback)
-
-        if not config.ini['assessment'].getboolean('scores_are_marks', False):
-            return
-
-        path_final = path.replace('##type##', 'final')
-        with open(path_final, 'w') as f:
-            data = {}
-            data['score'] = float(self.score)
-            data['score_max'] = config.ini['assessment'].getfloat('score_max',
-                                                                  None)
-
-            for stage_id, stage_scores in self.raw_scores.items():
-                stage_score = self.__getattribute__(f'score_{stage_id}')
-
-                data[f'stage_{stage_id}_score'] = stage_score
-                data[f'stage_{stage_id}_score_max'] = \
-                    config.ini[f'stage_{stage_id}'].getfloat('score_max', None)
-                data[f'stage_{stage_id}_score_min'] = \
-                    config.ini[f'stage_{stage_id}'].getfloat(
-                        'score_min', None)
-
-            feedback = self.feedback
-            for key, value in data.items():
-                feedback = feedback.replace(f'##{key}##', str(value))
-
-            f.write(feedback)
-
-    def __getattribute__(self, attr):
-        try:
-            if attr == '__dict__':
-                return super(Model, self).__getattribute__(attr)
-            elif attr.startswith('score_'):
-                stage_id = attr[6:]
-
-                score = 0.0
-                if stage_id in self.__dict__['raw_scores']:
-                    scores = self.__dict__['raw_scores'][stage_id]
-
-                    for this_score in scores.values():
-                        if this_score:
-                            score += float(this_score)
-
-                s_max = config.ini[f'stage_{stage_id}'].getfloat(
-                    'score_max', None)
-                if s_max is not None and score > s_max:
-                    score = s_max
-
-                s_min = config.ini[f'stage_{stage_id}'].getfloat(
-                    'score_min', None)
-                if s_min is not None and score < s_min:
-                    score = s_min
-
-                return score
-            elif attr == 'score':
-                score = 0
-
-                raw_scores = self.__dict__['raw_scores']
-                for stage_id in raw_scores.keys():
-                    score += self.__getattribute__(f'score_{stage_id}')
-
-                s_max = config.ini[f'assessment'].getfloat(
-                    'score_max', None)
-                if s_max is not None and score > s_max:
-                    score = s_max
-
-                s_min = config.ini[f'assessment'].getfloat(
-                    'score_min', None)
-                if s_min is not None and score < s_min:
-                    score = s_min
-
-                return score
-            elif attr == 'feedback':
-                feedback = ''
-                for stage_feedback in self.__dict__['raw_feedback'].values():
-                    for indiv_feedback in stage_feedback.values():
-                        indiv_feedback = indiv_feedback.strip(' ')
-                        feedback += indiv_feedback
-                        try:
-                            if indiv_feedback[-1] != '\n' and \
-                                   indiv_feedback[-1] != '\t':
-                                feedback += ' '
-                        except IndexError:
-                            pass
-                    feedback += '\n\n'
-                return feedback
-            else:
-                return super(Model, self).__getattribute__(attr)
-        except KeyError:
-            return None
 
 
 
@@ -500,8 +283,8 @@ class UrwidView:
         self.controller = controller
         self.model      = model
         self.window     = window.Window(controller,
-                                              model,
-                                              window.Window.SIDEBAR_STAGES)
+                                        model,
+                                        window.Window.SIDEBAR_STAGES)
 
     def run(self):
         self.window.run()

@@ -20,7 +20,10 @@ class AdapterNone:
         self.stage_id   = stage_id
         self.controller = controller
         self.model      = model
+        self.scores     = model['scores'][controller.submission]
+        self.feedbacks  = model['feedbacks'][controller.submission]
         self.window     = window
+        self.result     = None
 
         # where the UI should focus
         self.ui_focus   = None
@@ -38,22 +41,22 @@ class AdapterNone:
         """
         self.output = [urwid.Text('This stage has no output adapter.')]
 
-    def add_score(self, model_id, score):
+    def add_score(self, score_id, score):
         """
         Add to the submission's score (calls through to the model).
         """
         self.controller.add_score(self.stage_id,
-                                  model_id,
+                                  score_id,
                                   score)
 
-    def add_feedback(self, model_id, feedback):
+    def add_feedback(self, feedback_id, feedback):
         """
         Add to the submission's feedback (calls through to the model).
         """
         self.controller.add_feedback(self.stage_id,
-                                     model_id,
+                                     feedback_id,
                                      feedback)
-        
+
 
 
 class AdapterBase(AdapterNone):
@@ -107,12 +110,15 @@ class AdapterEditText(AdapterBase):
             self.outputedittext = texts
 
             for stage_id, stage_texts in texts.texts.items():
-                for model_id, text in stage_texts.items():
+                for key, text in stage_texts.items():
+                    if texts.skip_empty and len(text) == 0:
+                        continue
+                    
                     w = urwid.Edit('', text, multiline=True)
                     urwid.connect_signal(w,
                                         'change',
                                         self._on_edit_change,
-                                        (stage_id, model_id))
+                                        (stage_id, key))
                     w = urwid.AttrMap(w, 'edit', 'edit selected')
                     contents.append(w)
                 contents.append(urwid.Divider())
@@ -169,8 +175,8 @@ class AdapterForm(AdapterBase):
         self._last_selected_widget = None
         self._skip_on_edit_change = None
 
-        self.scores   = [0] * len(output.questions)
-        self.feedback = [''] * len(output.questions)
+        # self._scores    = [0] * len(output.questions)
+        # self._feedbacks = [''] * len(output.questions)
 
         # generate output
         for question_id, question in enumerate(output.questions):
@@ -216,27 +222,34 @@ class AdapterForm(AdapterBase):
 
             if question.required:
                 text += ' *'
-                self.required_not_completed.add(question_id)
 
             # existing value in the model?
             try:
-                existing_score_f = \
-                    self.model.raw_scores[self.stage_id][question_id]
+                existing_score_f = self.scores[self.stage_id][question_id]
                 existing_score_s = str(existing_score_f)
+                
                 if existing_score_s == 'None':
                     existing_score_s = ''
             except KeyError:
                 existing_score_f = None
                 existing_score_s = ''
 
-                self.add_score(question_id, None)
+                self.add_score(question_id, 0)
 
-            try:
-                existing_feedback = \
-                    self.model.raw_feedback[self.stage_id][question_id]
-            except KeyError:
-                existing_feedback = ''
-                self.add_feedback(question_id, '')
+            existing_feedback = ''
+            if question_id in self.feedbacks[self.stage_id]:
+                existing_feedback = self.feedbacks[self.stage_id][question_id]
+            elif question.type == stage.OutputForm.Question.TYPE_SCALE and \
+                        existing_score_f is not None:
+                try:
+                    pos = question.scores.index(existing_score_f)
+                    existing_feedback = question.feedback[pos]
+                except ValueError:
+                    existing_score_f = None
+                    existing_score_s = ''
+                    self.add_score(question_id, 0)
+
+                self.add_feedback(question_id, existing_feedback)
 
             # show question per row
             question_text = [urwid.AttrWrap(urwid.Text(text),
@@ -244,6 +257,9 @@ class AdapterForm(AdapterBase):
 
             inputs = []
             if question.type == stage.OutputForm.Question.TYPE_SCALE:
+                if question.required and existing_score_f is None:
+                    self.required_not_completed.add(question_id)
+                
                 max_score = '/' + str(max(question.scores))
                 radio_group = []
                 for score_id, score in enumerate(question.scores):
@@ -254,7 +270,7 @@ class AdapterForm(AdapterBase):
                     button = None
                     if config.ini['assessment'].getboolean('scores_are_marks',
                                                            False):
-                        label = str(score) + max_score
+                        label = str(score)
                         button = urwid.RadioButton(radio_group,
                                                    label,
                                                    checked,
@@ -270,6 +286,9 @@ class AdapterForm(AdapterBase):
                     
                     inputs.append(button)
             elif question.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
+                if question.required and len(existing_score_s) == 0:
+                    self.required_not_completed.add(question_id)
+                    
                 w = urwid.Edit('',
                                existing_score_s,
                                align = 'center')
@@ -280,6 +299,9 @@ class AdapterForm(AdapterBase):
                 w = urwid.AttrMap(w, 'edit', 'edit selected')
                 inputs.append(w)
             elif question.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
+                if question.required and len(existing_feedback) == 0:
+                    self.required_not_completed.add(question_id)
+                    
                 w = urwid.Edit('', existing_feedback, multiline=True)
                 urwid.connect_signal(w,
                                     'postchange',
@@ -288,6 +310,7 @@ class AdapterForm(AdapterBase):
                 w = urwid.AttrMap(w, 'edit', 'edit selected')
                 inputs.append(w)
 
+            
             w_inputs = [uw.JumpableColumns(inputs, dividechars = 1)]
             w = urwid.Columns(question_text + w_inputs,
                               min_width   = min_question_width,
@@ -298,8 +321,11 @@ class AdapterForm(AdapterBase):
             contents.append(urwid.Divider())
 
         self.ui_focus = [1]
-
+        
         super().set(contents)
+
+        if len(self.required_not_completed) == 0:
+            self.status_check()
 
     def status_check(self):
         """
@@ -310,7 +336,7 @@ class AdapterForm(AdapterBase):
             focus_path = self.window.frame.get_focus_path()
 
             result = stage.StageResult(stage.StageResult.RESULT_PASS)
-            result.set_output(self.outputform)
+            # result.set_output(self.outputform)
             self.controller.report(result, self.stage_id)
 
             self.window.frame.set_focus_path(focus_path)

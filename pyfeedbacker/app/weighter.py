@@ -259,12 +259,12 @@ class Controller:
     def set_stage_output(self, stage_id, output):
         self.view.set_stage_output(stage_id, output)
 
-    def add_score(self, stage_id, model_id, value):
-        self.model.add_score(stage_id, model_id, value)
+    def add_score(self, stage_id, score_id, value):
+        self.model.add_score(stage_id, score_id, value)
         self.view.set_score(self.model.score)
 
-    def add_feedback(self, stage_id, model_id, value):
-        self.model.add_feedback(stage_id, model_id, value)
+    def add_feedback(self, stage_id, feedback_id, value):
+        self.model.add_feedback(stage_id, feedback_id, value)
 
     def save_and_close(self):
         self.model.save_scores()
@@ -295,18 +295,18 @@ class Model(object):
         if feedback_pre:
             self.add_feedback('0', '0', feedback_pre)
 
-    def add_score(self, stage_id, model_id, value):
+    def add_score(self, stage_id, score_id, value):
         if stage_id not in self.__dict__['raw_scores']:
             self.__dict__['raw_scores'][stage_id] = OrderedDict()
         
-        self.__dict__['raw_scores'][stage_id][model_id] = value
+        self.__dict__['raw_scores'][stage_id][score_id] = value
 
-    def add_feedback(self, stage_id, model_id, value):
+    def add_feedback(self, stage_id, feedback_id, value):
         if stage_id not in self.__dict__['raw_scores']:
             self.__dict__['raw_feedback'][stage_id] = OrderedDict()
 
         value = value.replace('\\n', '\n')
-        self.__dict__['raw_feedback'][stage_id][model_id] = value
+        self.__dict__['raw_feedback'][stage_id][feedback_id] = value
 
     def save_scores(self, only_save_marks=False):
         file_title = ' scores'
@@ -321,7 +321,7 @@ class Model(object):
         for stage_id, stage_scores in self.raw_scores.items():
             stage_header.append(str(stage_id))
             first = True
-            for model_id in stage_scores.keys():
+            for score_id in stage_scores.keys():
                 if first:
                     first = False
                     continue

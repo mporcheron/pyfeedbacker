@@ -47,12 +47,12 @@ class StageInfo:
         self.model      = controller.model
         self.view       = controller.view
         
-        self.stage_id       = stage_id
-        self.label          = label
+        self.stage_id   = stage_id
+        self.label      = label
 
-        self.thread         = None
+        self.thread     = None
 
-        class_name          = 'Stage' + stage_id.capitalize()
+        class_name      = 'Stage' + stage_id.capitalize()
 
         # import the stage class
         try:
@@ -109,7 +109,7 @@ class StageResult:
         self.score        = 0
         self.feedback     = ''
         self.error        = ''
-        self.output       = OutputNone()
+        self.output       = None
 
     def add_score(self, score):
         """
@@ -160,10 +160,9 @@ class HandlerBase:
         self.model      = controller.model
         self.view       = controller.view
 
-        self.submission      = self.model.submission
-        self.dir_submissions = self.model.dir_submissions
-        self.dir_temp        = self.model.dir_temp
-        self.dir_output      = self.model.dir_output
+        self.submission       = self.controller.submission
+        self._dir_temp        = config.ini['app']['dir_temp']
+        self._dir_submissions = config.ini['app']['dir_submissions']
 
     def update_ui(self):
         """
@@ -287,6 +286,7 @@ class OutputEditText:
         """
         self.texts = texts
         self.callback = None
+        self.skip_empty = False
 
     def set_callback(self, callback):
         self.callback = callback
@@ -332,9 +332,12 @@ class OutputForm:
                                      cfg['scale' + num] + ': ' +
                                      str(e))
 
-                scores = [0] * len(scale)
+                scores = [0.0] * len(scale)
                 try:
                     scores = cfg['score' + num].split(',')
+                    for i in range(0, len(scores)):
+                        scores[i] = float(scores[i])
+
                     if len(scores) != len(scale):
                         raise StageError('Mismatch with number ' +
                                          'of score values (' + 
@@ -394,12 +397,12 @@ class OutputForm:
             self.max_score = False
 
         def set_scale(self, scale, scores, feedback):
-            self.type     = OutputForm.Question.TYPE_SCALE
-            self.scale    = scale
-            self.scores   = scores
+            self.type      = OutputForm.Question.TYPE_SCALE
+            self.scale     = scale
+            self.scores    = scores
             self.min_score = False
             self.max_score = False
-            self.feedback = feedback
+            self.feedback  = feedback
 
         def set_input_score(self, min_score, max_score):
             self.type      = OutputForm.Question.TYPE_INPUT_SCORE
