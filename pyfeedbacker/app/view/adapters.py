@@ -176,9 +176,6 @@ class AdapterForm(AdapterBase):
         self._last_selected_widget = None
         self._skip_on_edit_change = None
 
-        # self._scores    = [0] * len(output.questions)
-        # self._feedbacks = [''] * len(output.questions)
-
         # generate output
         for question_id, question in enumerate(output.questions):
             # column headings

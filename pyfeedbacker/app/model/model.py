@@ -125,6 +125,10 @@ class StagesData(OrderedDict):
         except KeyError:
             return False
 
+    def clear(self):
+        for stage_id in self.keys():
+            super().__getitem__(stage_id).clear()
+
 
 
 class StagesScores(StagesData):
@@ -226,6 +230,10 @@ class Data(OrderedDict):
             return super().__contains__(data_id)
         except KeyError:
             return False
+
+    def clear(self):
+        for data_id in self.keys():
+           super().__setitem__(data_id, self._init_value)
 
 
 

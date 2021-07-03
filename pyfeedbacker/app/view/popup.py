@@ -30,14 +30,14 @@ class PopupDialog:
         l = []
         widths = []
 
-        for name, action in buttons:
+        for name, _ in buttons:
             widths.append(len(name))
-
-        width = lcm(*widths)
+        width = max(widths)
 
         for name, action in buttons:
-            padded_name = (' ' * (int(((width - len(name))/2)))) + name
-            b = uw.SimpleButton(padded_name, self._on_button_press)
+            padding = (' ' * int((width - len(name)) / 2))
+            
+            b = uw.SimpleButton(padding + name + padding, self._on_button_press)
             b.action = action
             b = urwid.AttrWrap(b, 'selectable', 'focus')
             l.append(b)
@@ -56,7 +56,8 @@ class PopupDialog:
                 raise urwid.ExitMainLoop()
         else:
             self.loop.widget = self.window
-            button.action()
+            if button.action is not None:
+                button.action(button._init_label)
 
     def show(self, loop, window):
         """

@@ -5,6 +5,8 @@ from ..view import window
 
 
 class UrwidView:
+    ALERT_HALT, ALERT_OK, ALERT_YESNO = range(0,3)
+    
     def __init__(self, controller, model):
         """
         Public API for the pyfeedbacker UI, which is all self-contained
@@ -26,8 +28,14 @@ class UrwidView:
         for stage_id, stage in stages.items():
             self.append_stage(stage)
 
-    def show_alert(self, title, text, halt_execution=False):
-        self.window.show_alert(title, text, halt_execution)
+    def show_alert(self, title, text,
+            alert_type=ALERT_OK, callback=None, buttons=None):
+        if alert_type == UrwidView.ALERT_HALT:
+            self.window.show_alert(title, text, True)
+        elif alert_type == UrwidView.ALERT_OK:
+            self.window.show_alert(title, text, False)
+        elif alert_type == UrwidView.ALERT_YESNO:
+            self.window.show_custom_alert(title, text, callback, buttons)
 
     def show_stage(self, stage_id, label):
         self.window.show_stage(stage_id, label)

@@ -14,7 +14,8 @@ class SimpleButton(urwid.Button):
     button_right = u' >'
 
     def __init__(self, label, on_press=None, user_data=None):
-        self._label = SimpleButton.ButtonLabel(u'')
+        self._init_label = label.strip()
+        self._label = SimpleButton.ButtonLabel('')
 
         cols = urwid.Columns([
             ('fixed', len(self.button_left), urwid.Text(self.button_left)),

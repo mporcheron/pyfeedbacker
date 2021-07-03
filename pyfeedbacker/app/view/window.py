@@ -289,6 +289,16 @@ class Window:
 
         w.show(self.loop, self.frame)
 
+    def show_custom_alert(self, title, text, callback, options=['Yes','No']):
+        w = up.PopupDialog(title, text)
+        
+        buttons = []
+        for option in options:
+            buttons.append((option, callback))
+        
+        w.add_buttons(buttons)
+        w.show(self.loop, self.frame)
+
     def request_quit(self):
         """
         Show a popup asking if the user wants to quit pyfeedbacker
