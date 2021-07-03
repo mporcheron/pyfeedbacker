@@ -67,8 +67,8 @@ class FileSystemModel(model.BaseModel):
                     cells.pop(0)
 
                     for pos, cell in enumerate(cells):
-                        stage_id = col_stage_id[pos]
-                        score_id = col_score_id[pos]
+                        stage_id = col_stage_id[pos+1]
+                        score_id = col_score_id[pos+1]
 
                         if len(stage_id) == 0:
                             continue
@@ -77,6 +77,7 @@ class FileSystemModel(model.BaseModel):
                             float(cell)
         except FileNotFoundError:
             pass
+
         
         # load feedbacks
         try:
