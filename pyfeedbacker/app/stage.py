@@ -93,11 +93,12 @@ class StageInfo:
 
 
 class StageResult:
-    RESULT_CRITICAL = 0
-    RESULT_ERROR    = 1
-    RESULT_FAIL     = 2
-    RESULT_PASS     = 3
-    RESULT_PARTIAL  = 4
+    RESULT_CRITICAL      = 0
+    RESULT_ERROR         = 1
+    RESULT_FAIL          = 2
+    RESULT_PASS          = 3
+    RESULT_PASS_NONFINAL = 4
+    RESULT_PARTIAL       = 5
 
     def __init__(self, result):
         """

@@ -198,7 +198,10 @@ class Controller:
     def _execute_stage(self, instance):
         result = instance.run()
         if result:
-            self.report(result)
+            try:
+                self.report(result)
+            except stage.StageError as se:
+                self.view.show_alert('Error', str(se))
 
     def refresh_stage(self, stage_id):
         if stage_id not in self.stages_handlers:
@@ -224,24 +227,26 @@ class Controller:
 
         self.add_score(stage_id, 'reported', result.score)
 
-        if result.result == stage.StageResult.RESULT_PASS:
+        if result.result == stage.StageResult.RESULT_PASS or \
+                result.result == stage.StageResult.RESULT_PASS_NONFINAL:
             state = stage.StageInfo.STATE_COMPLETE
             self.view.set_stage_state(stage_id, state)
 
             if result.output is not None:
                 self.set_stage_output(stage_id, result.output)
+            try:
+                next_stage_id = self.get_next_stage_id(stage_id)
+                next_stage    = self.stages[next_stage_id]
 
-            if self.progress_on_success:
-                self.progress()
-            else:
-                try:
-                    next_stage_id = self.get_next_stage_id(stage_id)
-                    next_stage    = self.stages[next_stage_id]
+                if next_stage.state == stage.StageInfo.STATE_INACTIVE:
+                    self._next_stage_id = next_stage_id
 
-                    if next_stage.state == stage.StageInfo.STATE_INACTIVE:
-                        self._next_stage_id = next_stage_id
-                except KeyError:
-                    pass
+                if result.result == stage.StageResult.RESULT_PASS and \
+                        self.progress_on_success:
+                    self.execute_stage(next_stage_id)
+            except KeyError:
+                pass
+                    
         elif result.result == stage.StageResult.RESULT_PARTIAL:
             state = stage.StageInfo.STATE_COMPLETE
             self.view.set_stage_state(stage_id, state)

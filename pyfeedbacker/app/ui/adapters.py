@@ -332,7 +332,7 @@ class AdapterForm(AdapterBase):
         if len(self.required_not_completed) == 0:
             focus_path = self.window.frame.get_focus_path()
 
-            result = stage.StageResult(stage.StageResult.RESULT_PASS)
+            result = stage.StageResult(stage.StageResult.RESULT_PASS_NONFINAL)
             if refresh_output:
                 result.set_output(self.outputform)
             self.controller.report(result, self.stage_id)
