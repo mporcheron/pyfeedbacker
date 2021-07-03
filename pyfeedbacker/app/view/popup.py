@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from .. import config as cfg
 from . import widgets as uw
 
 from math import lcm

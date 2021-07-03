@@ -6,12 +6,13 @@ from . import widgets as uw
 import urwid
 
 
+
 class AdapterNone:
     def __init__(self, stage_id, controller, model, window):
         """
         Root adapter class that will simply generate the a fixed text output
         error message.
-        
+
         Adapters convert output, stored in Output* classes in app.stage to
         urwid widgets.
         """
@@ -26,8 +27,8 @@ class AdapterNone:
         self.result     = None
 
         # where the UI should focus
-        self.ui_focus   = None
-        
+        self.view_focus   = None
+
         # initial score
         score_init = config.ini[f'stage_{stage_id}'].getfloat(
             'score_init', None)
@@ -113,7 +114,7 @@ class AdapterEditText(AdapterBase):
                 for key, text in stage_texts.items():
                     if texts.skip_empty and len(text) == 0:
                         continue
-                    
+
                     w = urwid.Edit('', text, multiline=True)
                     urwid.connect_signal(w,
                                         'change',
@@ -247,7 +248,7 @@ class AdapterForm(AdapterBase):
                     self.add_score(question_id, 0.0)
 
                 self.add_feedback(question_id, existing_feedback)
-            
+
             # show question per row
             question_text = [urwid.AttrWrap(urwid.Text(text),
                                            'table row')]
@@ -256,14 +257,14 @@ class AdapterForm(AdapterBase):
             if question.type == stage.OutputForm.Question.TYPE_SCALE:
                 if question.required and existing_score_f is None:
                     self.required_not_completed.add(question_id)
-                
+
                 max_score = '/' + str(max(question.scores))
                 radio_group = []
                 for score_id, score in enumerate(question.scores):
                     checked = False
                     if existing_score_f == float(score):
                         checked = True
-                        
+
                     button = None
                     if config.ini['assessment'].getboolean('scores_are_marks',
                                                            False):
@@ -280,12 +281,12 @@ class AdapterForm(AdapterBase):
                                                        (question_id, score_id))
 
                     button = urwid.Padding(button, 'center', 'pack')
-                    
+
                     inputs.append(button)
             elif question.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
                 if question.required and len(existing_score_s) == 0:
                     self.required_not_completed.add(question_id)
-                    
+
                 w = urwid.Edit('',
                                existing_score_s,
                                align = 'center')
@@ -298,7 +299,7 @@ class AdapterForm(AdapterBase):
             elif question.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
                 if question.required and len(existing_feedback) == 0:
                     self.required_not_completed.add(question_id)
-                    
+
                 w = urwid.Edit('', existing_feedback, multiline=True)
                 urwid.connect_signal(w,
                                     'postchange',
@@ -307,7 +308,7 @@ class AdapterForm(AdapterBase):
                 w = urwid.AttrMap(w, 'edit', 'edit selected')
                 inputs.append(w)
 
-            
+
             w_inputs = [uw.JumpableColumns(inputs, dividechars = 1)]
             w = urwid.Columns(question_text + w_inputs,
                               min_width   = min_question_width,
@@ -317,8 +318,8 @@ class AdapterForm(AdapterBase):
             contents.append(w)
             contents.append(urwid.Divider())
 
-        self.ui_focus = [1]
-        
+        self.view_focus = [1]
+
         super().set(contents)
 
         if len(self.required_not_completed) == 0:
@@ -372,7 +373,7 @@ class AdapterForm(AdapterBase):
         if self._skip_on_edit_change == w:
             self._skip_on_edit_change = None
             return
-        
+
         self._last_selected_widget = w
 
         # question = self.questions[user_data]
@@ -381,22 +382,22 @@ class AdapterForm(AdapterBase):
         if q.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
             try:
                 value = float(value) if value is not None else 0.0
-                
+
                 if q.min_score != False and value < q.min_score:
                     value = q.min_score
                     strvalue = str(value)
                     if int(value) == value:
                         strvalue = str(int(value))
-                    
+
                     self._skip_on_edit_change = w
                     w.set_edit_text(strvalue)
-            
+
                 if q.max_score != False and value > q.max_score:
                     value = q.max_score
                     strvalue = str(value)
                     if int(value) == value:
                         strvalue = str(int(value))
-                    
+
                     self._skip_on_edit_change = w
                     w.set_edit_text(strvalue)
 

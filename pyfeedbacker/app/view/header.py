@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .. import config
-from .. import marker
-from .. import stage
+from .. import config, stage
+from ..controller import marker
 
 import urwid
 

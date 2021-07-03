@@ -4,7 +4,8 @@ import os
 import shutil
 import time
 
-from app import config, marker, stage
+from app import config, stage
+from app.controller import marker
 
 
 
@@ -74,7 +75,7 @@ class StageInit(stage.HandlerPython):
 
         try:
             self._rmdir(dir_temp)
-            
+
             self.output.set_state(True, StageInit.STEP_EMPTY)
             self.update_ui()
         except FileNotFoundError:

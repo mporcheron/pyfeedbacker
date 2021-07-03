@@ -25,14 +25,14 @@ class StageInfo:
         """
         A marking stage can be a particular element, or point in marking that
         groups together a number of marks for the student.
-                 
+
         Arguments:
         controller -- Controller component for the application
         stage_id   -- Textual simple id for the stage
         label      -- Application UI label
-        handler    -- The specific type this stage takes (e.g., is it Python 
+        handler    -- The specific type this stage takes (e.g., is it Python
                       code, or a form)
-        
+
         Keyword arguments:
         selectable    -- Whether this stage can be selected for execution
         score_min     -- Minimum score for this stage as a float or None
@@ -46,7 +46,7 @@ class StageInfo:
         self.controller = controller
         self.model      = controller.model
         self.view       = controller.view
-        
+
         self.stage_id   = stage_id
         self.label      = label
 
@@ -114,7 +114,7 @@ class StageResult:
 
     def add_score(self, score):
         """
-        Add to the score for this stage. Any min/max limits on score are 
+        Add to the score for this stage. Any min/max limits on score are
         applied in the model and not here.
         """
         self.score       += score
@@ -179,8 +179,8 @@ class HandlerBase:
 
     def refresh(self):
         """
-        Refresh the stage. This may need to be called if the stage draws on 
-        data that may change externally (e.g. the model, or some part of the 
+        Refresh the stage. This may need to be called if the stage draws on
+        data that may change externally (e.g. the model, or some part of the
         submission may change due to an external event).
         """
         pass
@@ -231,8 +231,8 @@ class HandlerPython(HandlerBase):
 
 class HandlerProcess(HandlerBase):
     pass
-        
-        
+
+
 
 class StageError(Exception):
     def __init__(self, mesg):
@@ -257,7 +257,7 @@ class StageIgnorableError(StageError):
 
     def __str(self):
         return self._mesg
- 
+
 
 
 class OutputNone:
@@ -273,7 +273,7 @@ class OutputText:
     def __init__(self, text = ''):
         """
         An output for a stage is simply text.
-        
+
         This can be a single string or a list of string.
         """
         self.text = text
@@ -304,9 +304,9 @@ class OutputForm:
             cfg = config.ini['stage_' + stage_id]
         except KeyError:
             raise StageError('No stage config for id: ' + stage_id)
-        
+
         self.questions = []
-        
+
         for k, v in cfg.items():
             if not k.startswith('question'):
                 continue
@@ -341,7 +341,7 @@ class OutputForm:
 
                     if len(scores) != len(scale):
                         raise StageError('Mismatch with number ' +
-                                         'of score values (' + 
+                                         'of score values (' +
                                           str(len(scores)) +
                                           ') vs. number of answers (' +
                                           str(len(scale)) +
@@ -362,9 +362,9 @@ class OutputForm:
                                          ') in question ' + num + '.')
                 except KeyError:
                     pass
-                
+
                 q.set_scale(scale, scores, feedback)
-                
+
             elif type_str == 'input_score':
                 try:
                     min_score = cfg.getfloat('min' + num, None)
@@ -375,7 +375,7 @@ class OutputForm:
                     max_score = cfg.getfloat('max' + num, None)
                 except KeyError:
                     max_score = False
-                
+
                 q.set_input_score(min_score, max_score)
 
             elif type_str == 'input_feedback':
@@ -384,7 +384,7 @@ class OutputForm:
                 raise StageError('Unrecognised question type: ' + \
                                        type_str + ' for question ' + num + \
                                        '.')
-            
+
             self.questions.append(q)
 
     class Question:
@@ -421,7 +421,7 @@ class OutputChecklist:
     def __init__(self, progress = []):
         """
         An output for a stage is a checklist of progress of execution.
-        
+
         Each item in a progress list is (Bool, String)
         """
         self.progress = progress

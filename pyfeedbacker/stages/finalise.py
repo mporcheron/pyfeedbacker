@@ -5,18 +5,19 @@ from app import config, stage
 import re
 
 
+
 class StageFinalise(stage.HandlerEditText):
-    TAG = u'finalise'
+    TAG = 'finalise'
     STEP_EMPTY, STEP_COPYSUB, STEP_COPYFWK = range(0,3)
-    
+
     def __init__(self):
         self.output = stage.OutputText(u'No feedback generated.')
 
     def run(self):
         self._generate_selective_feedback()
-        
+
         self._feedback = self.model['feedbacks'][self.submission]
-        
+
         self.output = stage.OutputEditText(self._feedback.dict)
         self.output.set_callback(self.set_value)
         self.skip_empty = True
@@ -36,7 +37,7 @@ class StageFinalise(stage.HandlerEditText):
         for key, value in config_params:
             if not key.startswith('selective_'):
                 continue
-            
+
             match = re.match(bounds_regex, key)
             if match:
                 lowerbound = float(match.group(1))
@@ -48,7 +49,7 @@ class StageFinalise(stage.HandlerEditText):
                 if score >= lowerbound and score <= upperbound:
                     fb_submission[StageFinalise.TAG]['selective'] = value
                     return
-    
+
         self.set_value(StageFinalise.TAG, 'selective', '')
 
     def set_value(self, stage_id, feedback_id, value):

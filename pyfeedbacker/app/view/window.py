@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import config as cfg
-from .. import stage
+from .. import config, stage
 from . import adapters as ua
 from . import header as uh
 from . import sidebar as us
@@ -17,7 +16,7 @@ import signal
 
 class Window:
     SIDEBAR_STAGES, SIDEBAR_STATS = range(0,2)
-    
+
     def __init__(self, controller, model, sidebar=SIDEBAR_STAGES):
         """
         The main application UI.
@@ -36,14 +35,14 @@ class Window:
             ('stage',          '', '', '', 'black',     'g58'),
             ('stage hover',    '', '', '', '#fff',      '#000'),
             ('table header',   '', '', '', '#fff,bold', 'g23'),
-            ('table row',      '', '', '', '#fff,bold',  ''), 
+            ('table row',      '', '', '', '#fff,bold',  ''),
             ('edit',           'light gray', 'dark blue'),
             ('edit error',     'white', 'dark red', 'bold'),
             ('edit selected',  'white', 'dark blue', 'bold'),
             ('bg',             '', '', '', 'g7',        '#000')]
 
         self.header  = uh.HeaderWidget(controller, model, self)
-        
+
         if sidebar is Window.SIDEBAR_STAGES:
             self.sidebar = us.SidebarStagesWidget(controller, model, self)
         elif sidebar is Window.SIDEBAR_STATS:
@@ -109,7 +108,7 @@ class Window:
         except Exception:
             self.loop.screen.tty_signal_keys(*old_signal_list)
             raise
-        
+
         finally:
             self.loop.screen.tty_signal_keys(*old_signal_list)
 
@@ -160,7 +159,7 @@ class Window:
         """
         self.visible_stage_id    = stage_id
         self.visible_stage_label = label
-        
+
         self.sidebar.set_stage_selected(stage_id)
 
         if len(self._main.positions()) > 1:
@@ -175,7 +174,7 @@ class Window:
             output += adapter.output
         else:
             output.append(urwid.Text('This stage has not yet executed.'))
-      
+
         output.append(urwid.Divider())
 
         if self.visible_stage_id in self._show_continue_button:
@@ -195,12 +194,12 @@ class Window:
 
         if self.visible_stage_id in self._output_adapters:
             adapter = self._output_adapters[self.visible_stage_id]
-            if adapter.ui_focus is not None:
+            if adapter.view_focus is not None:
                 # raise stage.StageError(w.get_focus_path())
-                w.set_focus_path([4] + adapter.ui_focus)
-        
+                w.set_focus_path([4] + adapter.view_focus)
+
         w = urwid.Padding(w, left=2, right=2, min_width=20)
-        
+
         self._main.append(w)
 
         # if self.visible_stage_id in self._show_continue_button:
@@ -216,7 +215,7 @@ class Window:
         try:
             if self.visible_stage_id != stage_id:
                 return
-                    
+
             self.show_stage(self.visible_stage_id, self.visible_stage_label)
         except AttributeError:
             pass
@@ -283,7 +282,7 @@ class Window:
     def show_alert(self, title, text, halt_execution=False):
         w = up.PopupDialog(title, text)
         if halt_execution:
-            w.add_buttons([(('Quit ' + cfg.ini['app']['name'],
+            w.add_buttons([(('Quit ' + config.ini['app']['name'],
                              up.PopupDialog.DIALOG_QUIT))])
         else:
             w.add_buttons([(('OK', up.PopupDialog.DIALOG_CANCEL))])

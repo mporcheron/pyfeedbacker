@@ -100,7 +100,7 @@ class JumpableColumns(urwid.Columns):
 
     def keypress(self, size, key):
         """
-        A jumpable Columns allows you to press alt/option/meta + right/left 
+        A jumpable Columns allows you to press alt/option/meta + right/left
         arrow to jump right/left accross the columns to focus.
 
         Also loops at the left and right.
@@ -129,12 +129,12 @@ class JumpableColumns(urwid.Columns):
 
 
 class EscableListBox(urwid.ListBox):
-    
+
     def __init__(self, body, escape_to):
         """
         A ListBox that when someone presses escape, it can shift the focus to
         another widget.
-        
+
         To do this, pass the body in and the function that should be called
         on escape
         """
@@ -154,18 +154,18 @@ class EscableListBox(urwid.ListBox):
 
 
 class CentredRadioButton(urwid.RadioButton):
-    
+
     def __init__(self,
                  group,
                  state           = "first True",
                  on_state_change = None,
                  user_data       = None):
         """
-        A radio button that has no label and centres the checkbox in the 
+        A radio button that has no label and centres the checkbox in the
         centre.
         """
         super().__init__(group, '', state, on_state_change, user_data)
-                                                 
+
     def set_state(self, state, do_callback=True):
         """
         Cascade to the RadioButton (and CheckBox) state setting functions

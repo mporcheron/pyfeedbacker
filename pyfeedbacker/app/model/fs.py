@@ -11,6 +11,7 @@ import json
 import os
 
 
+
 class FileSystemModel(model.BaseModel):
     def __init__(self):
         """
@@ -126,14 +127,14 @@ class FileSystemModel(model.BaseModel):
                 stage_header.append(stage_id)
             else:
                 stage_header.append('')
-            
+
         stage_header_str = ','.join(stage_header) + ',sum'
 
         score_header = ['submission']
         for (stage_id, score_id) in mapping:
             score_header.append(score_id)
         score_header_str = ','.join(score_header) + ',sum'
-        
+
         return [title_header_str, stage_header_str, score_header_str, mapping]
 
     def save(self):
