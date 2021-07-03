@@ -69,6 +69,9 @@ class FileSystemModel(model.BaseModel):
                     for pos, cell in enumerate(cells):
                         stage_id = col_stage_id[pos+1]
                         score_id = col_score_id[pos+1]
+                        
+                        if stage_id == 'sum' and score_id == 'sum':
+                            continue
 
                         if len(stage_id) == 0:
                             continue
@@ -112,14 +115,14 @@ class FileSystemModel(model.BaseModel):
                 stage_header.append(stage_id_s)
                 stage_header += [''] * (len(stage_scores) - 1)
 
-        stage_header_str = ','.join(stage_header) + ',final'
+        stage_header_str = ','.join(stage_header) + ',sum'
 
         score_header = ['submission']
         for submission, stages in self['scores'].items():
             for stage_id, stage_scores in stages.items():
                 for score_id in stage_scores.keys():
                     score_header.append(str(score_id))
-        score_header_str = ','.join(score_header) + ',final'
+        score_header_str = ','.join(score_header) + ',sum'
 
         return [title_header_str, stage_header_str, score_header_str]
             

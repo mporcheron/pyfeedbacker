@@ -83,21 +83,37 @@ class AllSubmissions(OrderedDict):
         self._model_type = model_type
         
     def __getitem__(self, submission):
+        submission = str(submission)
         try:
             return super().__getitem__(submission)
         except KeyError:
             super().__setitem__(submission, self._model_type())
             return super().__getitem__(submission)
+        
+    def __contains__(self, submission):
+        submission = str(submission)
+        try:
+            return super().__contains__(submission)
+        except KeyError:
+            return False
 
 
 
 class StagesScores(OrderedDict):
     def __getitem__(self, stage_id):
+        stage_id = str(stage_id)
         try:
             return super().__getitem__(stage_id)
         except KeyError:
             super().__setitem__(stage_id, Scores())
             return super().__getitem__(stage_id)
+        
+    def __contains__(self, stage_id):
+        stage_id = str(stage_id)
+        try:
+            return super().__contains__(stage_id)
+        except KeyError:
+            return False
     
     sum = property(lambda self:self._calculate_score(), doc="""
             Read the total score for the submission as a float.
@@ -129,11 +145,19 @@ class StagesScores(OrderedDict):
 
 class StagesFeedback(OrderedDict):
     def __getitem__(self, stage_id):
+        stage_id = str(stage_id)
         try:
             return super().__getitem__(stage_id)
         except KeyError:
             super().__setitem__(stage_id, Feedbacks())
             return super().__getitem__(stage_id)
+        
+    def __contains__(self, stage_id):
+        stage_id = str(stage_id)
+        try:
+            return super().__contains__(stage_id)
+        except KeyError:
+            return False
 
     list = property(lambda self:self._get_as_list(), doc="""
             Return the feedbacks as a list.
@@ -180,14 +204,23 @@ class Scores(OrderedDict):
         self._data          = OrderedDict()
         
     def __getitem__(self, score_id):
+        score_id = str(score_id)
         try:
             return super().__getitem__(score_id)
         except KeyError:
             super().__setitem__(score_id, 0.0)
             return super().__getitem__(score_id)
+        
+    def __contains__(self, score_id):
+        score_id = str(score_id)
+        try:
+            return super().__contains__(score_id)
+        except KeyError:
+            return False
 
     def __setitem__(self, score_id, value):
-        return super().__setitem__(str(score_id), float(value))
+        score_id = str(score_id)
+        return super().__setitem__(score_id, float(value))
     
     sum = property(lambda self:self._calculate_score(), doc="""
             Read the total score for the submission as a float.
@@ -214,15 +247,24 @@ class Feedbacks(OrderedDict):
         self._data          = OrderedDict()
         
     def __getitem__(self, feedback_id):
+        feedback_id = str(feedback_id)
         try:
             return super().__getitem__(feedback_id)
         except KeyError:
             super().__setitem__(feedback_id, '')
             return super().__getitem__(feedback_id)
         
+    def __contains__(self, feedback_id):
+        feedback_id = str(feedback_id)
+        try:
+            return super().__contains__(feedback_id)
+        except KeyError:
+            return False
+        
     def __setitem__(self, feedback_id, value):
+        feedback_id = str(feedback_id)
         value = value.replace('\\n', '\n')
-        return super().__setitem__(str(feedback_id), value)
+        return super().__setitem__(feedback_id, value)
 
     list = property(lambda self:self._get_as_list(), doc="""
             Return the feedbacks as a list.
@@ -250,7 +292,7 @@ class Feedbacks(OrderedDict):
 
         for key, value in self.items():
             value = value.strip(' ')
-            feedbacks[key] = indiv_feedback.replace('\\n', '\n')
+            feedbacks[key] = value.replace('\\n', '\n')
 
         return feedbacks
 
