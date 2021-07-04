@@ -152,7 +152,12 @@ class HandlerBase:
         the required functions. Every stage must be a handler of some form.
         """
         self.output          = OutputNone()
-        self.score_info      = None
+
+        try:
+            self.scores_info     = ScoresInfo()
+        except AttributeError:
+            pass
+
         self.interactive     = False
 
     def set_framework(self, controller):
@@ -232,6 +237,83 @@ class HandlerForm(HandlerBase):
         
         self.output      = OutputForm(self.TAG)
         self.interactive = True
+
+    scores_info = property(lambda self:self._calculate_outcomes(), doc="""
+            Calculate information about scores for interactive forms
+            """)
+
+    def _calculate_outcomes(self):
+        if len(self._scores_info) > 0:
+            return self._scores_info
+
+        self._scores_info = ScoresInfo()
+
+        try:
+            cfg = config.ini['stage_' + stage_id]
+        except KeyError:
+            raise StageError('No stage config for id: ' + stage_id)
+
+        self.questions = []
+
+        score_min = 0
+        score_max = 0
+
+        for k, v in cfg.items():
+            if not k.startswith('question'):
+                continue
+
+            required = cfg.getboolean('required' + num, fallback=False)      
+
+            question_score_min = 0
+            question_score_max = 0
+            
+            if type_str == 'scale':
+                try:
+                    for i in range(0, len(scores)):
+                        this_score = float(scores[i])
+                        
+                        if required:
+                            question_score_min = min(question_score_min,
+                                                     this_score)
+                        question_score_max = min(question_score_max, this_score)
+                except KeyError:
+                    pass
+
+            elif type_str == 'input_score':
+                try:
+                    min_score = cfg.getfloat('min' + num, None)
+                    
+                    if required:
+                        question_score_min = min(question_score_min, min_score)
+                except KeyError:
+                    pass
+
+                try:
+                    max_score = cfg.getfloat('max' + num, None)
+                    question_score_max = min(question_score_max, max_score)
+                except KeyError:
+                    pass
+
+            score_min = min(score_min, question_score_min)
+            score_max = min(score_max, score_max)
+
+        cfg_score_min = config.ini[f'stage_{stage_id}'].getfloat(
+            'score_max', None)
+        cfg_score_max = config.ini[f'stage_{stage_id}'].getfloat(
+            'score_max', None)
+        
+        if cfg_score_min is not None:
+            score_min = max(score_min, cfg_score_min)
+        
+        if cfg_score_max is not None:
+            score_min = min(score_min, cfg_score_max)
+
+        self._scores_info.add_outcome(
+            score_min,
+            'The minimum possible score after completing the form')
+        self._scores_info.add_outcome(
+            score_max,
+            'The maximum possible score after completing the form')
 
 
 
@@ -319,15 +401,9 @@ class OutputForm:
 
         self.questions = []
 
-        score_min = 0
-        score_max = 0
-
         for k, v in cfg.items():
             if not k.startswith('question'):
                 continue
-                
-            question_score_min = 0
-            question_score_max = 0
 
             num = k[8:]
             required = cfg.getboolean('required' + num, fallback=False)
@@ -357,11 +433,6 @@ class OutputForm:
                     for i in range(0, len(scores)):
                         this_score = float(scores[i])
                         scores[i] = this_score
-                        
-                        if question.required:
-                            question_score_min = min(question_score_min,
-                                                     this_score)
-                        question_score_max = min(question_score_max, this_score)
 
                     if len(scores) != len(scale):
                         raise StageError('Mismatch with number ' +
@@ -392,15 +463,11 @@ class OutputForm:
             elif type_str == 'input_score':
                 try:
                     min_score = cfg.getfloat('min' + num, None)
-                    
-                    if question.required:
-                        question_score_min = min(question_score_min, min_score)
                 except KeyError:
                     min_score = False
 
                 try:
                     max_score = cfg.getfloat('max' + num, None)
-                    question_score_max = min(question_score_max, max_score)
                 except KeyError:
                     max_score = False
 
@@ -412,29 +479,8 @@ class OutputForm:
                 raise StageError('Unrecognised question type: ' + \
                                        type_str + ' for question ' + num + \
                                        '.')
-
-            score_min = min(score_min, question_score_min)
-            score_max = min(score_max, score_max)
             self.questions.append(q)
 
-        
-        cfg_score_min = config.ini[f'stage_{stage_id}'].getfloat(
-            'score_max', None)
-        cfg_score_max = config.ini[f'stage_{stage_id}'].getfloat(
-            'score_max', None)
-        
-        if cfg_score_min is not None:
-            score_min = max(score_min, cfg_score_min)
-        
-        if cfg_score_max is not None:
-            score_min = min(score_min, cfg_score_max)
-
-        self.scores_info.add_outcome(
-            score_min,
-            'The minimum possible score after completing the form')
-        self.scores_info.add_outcome(
-            score_max,
-            'The maximum possible score after completing the form')
 
 
     class Question:

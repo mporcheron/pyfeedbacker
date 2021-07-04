@@ -11,6 +11,7 @@ class StageFinalise(stage.HandlerEditText):
     STEP_EMPTY, STEP_COPYSUB, STEP_COPYFWK = range(0,3)
 
     def __init__(self):
+        super().__init__()
         self.output = stage.OutputText(u'No feedback generated.')
 
     def run(self):

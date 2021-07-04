@@ -22,7 +22,7 @@ class Controller(controller.BaseController):
         and feedback, separated by 'stages'.
         """
         super().__init__()
-        
+
         self.submission      = submission
 
     def set_model(self, model):
@@ -41,21 +41,21 @@ class Controller(controller.BaseController):
 
         if self.scores.sum != 0.0 or len(self.feedbacks.str) > 0:
             self.view.show_alert('This submission has already been marked',
-                                 'Do you want to keep the existing marking' + 
+                                 'Do you want to keep the existing marking' +
                                  '\n or would you like to start again?',
                                  view.UrwidView.ALERT_YESNO,
                                  self._on_keep_existing_scores_response,
                                  ['Keep existing scores', 'Start again'])
         else:
             self._execute_first_stage()
-        
+
     def _on_keep_existing_scores_response(self, response):
         if response == 'Start again':
             self.scores.clear()
             self.feedbacks.clear()
-            
+
         self._execute_first_stage()
-        
+
     def _execute_first_stage(self):
         self._next_stage_id = self.stages_ids[0]
         self.execute_stage(self._next_stage_id)
@@ -180,7 +180,7 @@ class Controller(controller.BaseController):
                     self.execute_stage(next_stage_id)
             except KeyError:
                 pass
-                    
+
         elif result.result == stage.StageResult.RESULT_PARTIAL:
             state = stage.StageInfo.STATE_COMPLETE
             self.view.set_stage_state(stage_id, state)

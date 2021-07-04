@@ -18,6 +18,8 @@ class StageInit(stage.HandlerPython):
         Copy the submission from the submissions directory into a temporary
         directory.
         """
+        super().__init__()
+
         self.output = stage.OutputChecklist([
             (False, 'Create/empty existing directory'),
             (False, 'Copy submission into temporary directory'),
