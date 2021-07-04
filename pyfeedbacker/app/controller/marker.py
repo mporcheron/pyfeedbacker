@@ -33,6 +33,7 @@ class Controller(controller.BaseController):
         super().set_model(model)
         self.scores    = model['scores'][self.submission]
         self.feedbacks = model['feedbacks'][self.submission]
+        self.outcomes  = model['outcomes'][self.submission]
         return self
 
     def execute_first_stage(self):
@@ -53,12 +54,23 @@ class Controller(controller.BaseController):
         if response == 'Start again':
             self.scores.clear()
             self.feedbacks.clear()
+            self.outcomes.clear()
 
         self._execute_first_stage()
 
     def _execute_first_stage(self):
         self._next_stage_id = self.stages_ids[0]
         self.execute_stage(self._next_stage_id)
+
+    def add_score(self, stage_id, score_id, value):
+        self.scores[stage_id][score_id] = value
+        self.view.set_score(self.scores.sum)
+
+    def add_feedback(self, stage_id, feedback_id, value):
+        self.feedbacks[stage_id][feedback_id] = value
+
+    def set_outcome(self, stage_id, outcome_id, outcome):
+        self.outcomes[stage_id][outcome_id] = outcome
 
     def execute_stage(self, stage_id=None):
         """
@@ -98,8 +110,7 @@ class Controller(controller.BaseController):
 
         instance = None
         try:
-            instance = stage_info.handler()
-
+            instance = stage_info.handler(stage_id)
             instance.set_framework(self)
 
             self.stages_handlers[stage_id] = instance
@@ -159,7 +170,11 @@ class Controller(controller.BaseController):
             stage_id   = self.current_stage[0]
             stage_info = self.current_stage[1]
 
-        self.add_score(stage_id, 'reported', result.score)
+        if result.score is not None:
+            self.add_score(stage_id, 'reported', result.score)
+
+        if result.outcome is not None:
+            self.set_outcome(stage_id, 'reported', result.outcome)
 
         if result.result == stage.StageResult.RESULT_PASS or \
                 result.result == stage.StageResult.RESULT_PASS_NONFINAL:

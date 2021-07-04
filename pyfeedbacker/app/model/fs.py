@@ -99,6 +99,26 @@ class FileSystemModel(model.BaseModel):
         except FileNotFoundError:
             pass
 
+        # load outcomes
+        try:
+            file_outcomes = config.ini['model_file']['file_outcomes']
+            with open(file_outcomes, 'r') as json_file:
+                for submission, stages in json.load(json_file).items():
+                    for stage_id, data in stages.items():
+                        if data is None:
+                            continue
+
+                        for outcome_id, outcome in data.items():
+                            if outcome is None:
+                                continue
+
+                            self['outcomes'][submission][stage_id][outcome_id]=\
+                                outcome
+        except json.decoder.JSONDecodeError:
+            pass
+        except FileNotFoundError:
+            pass
+
     def _get_csv_title(self, marks):
         return config.ini['app']['name'] + \
                (' marks' if marks else ' scores')
@@ -140,6 +160,7 @@ class FileSystemModel(model.BaseModel):
     def save(self):
         self._save_scores()
         self._save_feedbacks()
+        self._save_outcomes()
 
     def _save_scores(self, only_save_marks=False):
         file_name = config.ini['model_file']['file_scores']
@@ -200,3 +221,8 @@ class FileSystemModel(model.BaseModel):
                         feedback = feedback.replace(f'##{key}##', str(value))
 
                     f.write(feedback)
+
+    def _save_outcomes(self):
+        file_name = config.ini['model_file']['file_outcomes']
+        with open(file_name, 'w') as json_file:
+            json_file.write(json.dumps(self['outcomes'].dict))

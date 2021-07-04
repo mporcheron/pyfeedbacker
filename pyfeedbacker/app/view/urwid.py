@@ -1,21 +1,33 @@
 # -*- coding: utf-8 -*-
 
 from ..view import window
+from ..controller import marker, weighter
 
 
 
 class UrwidView:
+    APP_MARKER, APP_WEIGHTER = range(0,2)
     ALERT_HALT, ALERT_OK, ALERT_YESNO = range(0,3)
-    
+
     def __init__(self, controller, model):
         """
         Public API for the pyfeedbacker UI, which is all self-contained
         in a separate package (app.view) using Urwid
         """
         self.controller = controller
+
+        self.app        = UrwidView.APP_MARKER
+        if isinstance(controller, marker.Controller):
+            pass
+        elif isinstance(controller, weighter.Controller):
+            self.app    = UrwidView.APP_WEIGHTER
+        else:
+            raise AttributeError('Unknown app controller')
+
         self.model      = model
         self.window     = window.Window(controller,
                                         model,
+                                        self,
                                         window.Window.SIDEBAR_STAGES)
 
     def run(self):

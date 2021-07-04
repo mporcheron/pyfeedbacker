@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from .. import config, stage
-from ..view import window
 
 from collections import OrderedDict
 
@@ -53,13 +52,6 @@ class BaseController:
     def start(self):
         self._load_stages()
         self.view.run()
-
-    def add_score(self, stage_id, score_id, value):
-        self.scores[stage_id][score_id] = value
-        self.view.set_score(self.scores.sum)
-
-    def add_feedback(self, stage_id, feedback_id, value):
-        self.feedbacks[stage_id][feedback_id] = value
 
     def _load_stages(self):
         """

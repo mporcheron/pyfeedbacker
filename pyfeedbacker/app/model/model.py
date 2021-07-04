@@ -2,6 +2,7 @@
 
 from .. import config
 from .. import stage
+from . import outcomes
 
 from collections import OrderedDict
 
@@ -13,11 +14,12 @@ import csv
 class BaseModel(object):
     def __init__(self):
         """
-        All scores and feedback should be stored in a storage model of some
+        All class and feedback should be stored in a storage model of some
         form
         """
         self._scores    = AllSubmissions(StagesScores)
         self._feedbacks = AllSubmissions(StagesFeedback)
+        self._outcomes  = AllSubmissions(StagesOutcomes)
 
         self._set_init_data()
 
@@ -26,6 +28,8 @@ class BaseModel(object):
             return self._scores
         elif type == 'feedbacks':
             return self._feedbacks
+        elif type == 'outcomes':
+            return self._outcomes
         else:
             raise KeyError(f'Unknown model data type: f{type}')
 
@@ -99,6 +103,19 @@ class AllSubmissions(OrderedDict):
         except KeyError:
             return False
 
+    dict = property(lambda self:self.__dict__(), doc="""
+            Get a copy of the data as a dictionary.
+            """)
+
+    def __dict__(self):
+        items = {}
+
+        for key, value in self.items():
+            items[key] = value.dict
+
+        return items
+
+
 
 
 class StagesData(OrderedDict):
@@ -125,7 +142,7 @@ class StagesData(OrderedDict):
         except KeyError:
             return False
 
-    list = property(lambda self:self._get_as_list(), doc="""
+    list = property(lambda self:self.__list__(), doc="""
             Get a copy of the data as a list.
             """)
 
@@ -140,20 +157,17 @@ class StagesData(OrderedDict):
     def __list__(self):
         return self._get_as_list()
 
-    dict = property(lambda self:self._get_as_dict(), doc="""
+    dict = property(lambda self:self.__dict__(), doc="""
             Get a copy of the data as a dictionary.
             """)
 
-    def _get_as_dict(self):
+    def __dict__(self):
         items = {}
 
         for key, value in self.items():
             items[key] = value.dict
 
         return items
-
-    def __dict__(self):
-        return self.__get_as_dict()
 
 
 
@@ -206,6 +220,12 @@ class StagesFeedback(StagesData):
 
 
 
+class StagesOutcomes(StagesData):
+    def __init__(self):
+        super().__init__(outcomes.Outcomes)
+
+
+
 class Data(OrderedDict):
     def __init__(self, stage_id, init_value):
         """
@@ -235,27 +255,21 @@ class Data(OrderedDict):
         except KeyError:
             return False
 
-    list = property(lambda self:self._get_as_list(), doc="""
+    list = property(lambda self:self.__list__(), doc="""
             Return the data as a list.
             """)
 
     @abc.abstractmethod
-    def _get_as_list(self):
+    def __list__(self):
         pass
 
-    def __list__(self):
-        return self._get_as_list()
-
-    dict = property(lambda self:self._get_as_dict(), doc="""
+    dict = property(lambda self:self.__dict__(), doc="""
             Return the feedbacks as a dict.
             """)
 
     @abc.abstractmethod
-    def _get_as_dict(self):
-        pass
-
     def __dict__(self):
-        return self._get_as_dict()
+        pass
 
 
 
@@ -266,7 +280,7 @@ class Scores(Data):
     def __setitem__(self, score_id, value):
         return super().__setitem__(score_id, float(value))
 
-    def _get_as_dict(self):
+    def __dict__(self):
         scores = {}
 
         for key, value in self.items():
@@ -274,7 +288,7 @@ class Scores(Data):
 
         return scores
 
-    def get_as_list(self):
+    def __list__(self):
         scores = []
 
         for score in self.values():
@@ -319,7 +333,7 @@ class Feedbacks(Data):
         value = value.replace('\\n', '\n')
         return super().__setitem__(feedback_id, value)
 
-    def _get_as_dict(self):
+    def __dict__(self):
         feedbacks = {}
 
         for key, value in self.items():
@@ -328,7 +342,7 @@ class Feedbacks(Data):
 
         return feedbacks
 
-    def get_as_list(self):
+    def __list__(self):
         feedbacks = []
 
         for indiv_feedback in self.values():

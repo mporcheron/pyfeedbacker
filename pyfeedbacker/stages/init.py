@@ -1,24 +1,23 @@
 # -*- coding: utf-8 -*-
 
+from app import config, stage
+from app.controller import marker
+
 import os
 import shutil
 import time
 
-from app import config, stage
-from app.controller import marker
-
 
 
 class StageInit(stage.HandlerPython):
-    TAG = 'init'
     STEP_EMPTY, STEP_COPYSUB, STEP_COPYFWK = range(0,3)
 
-    def __init__(self):
+    def __init__(self, stage_id):
         """
         Copy the submission from the submissions directory into a temporary
         directory.
         """
-        super().__init__()
+        super().__init__(stage_id)
 
         self.output = stage.OutputChecklist([
             (False, 'Create/empty existing directory'),
@@ -26,17 +25,20 @@ class StageInit(stage.HandlerPython):
             (False, 'Copy framework into temporary directory')
         ])
         
-        self._score_pass = config.ini[f'stage_{StageInit.TAG}'].getfloat(
+    def calculate_outcomes(self):
+        self._score_pass = config.ini[f'stage_{self.stage_id}'].getfloat(
             'score_max', None)
-        score_min = config.ini[f'stage_{StageInit.TAG}'].getfloat(
-            'score_max', None)
+        score_min = config.ini[f'stage_{self.stage_id}'].getfloat(
+            'score_min', None)
         
-        self.scores_info.add_outcome(
-            score_min,
-            'The student did NOT make a submission')
-        self.scores_info.add_outcome(
-            self._score_pass,
-            'The student made a submission')
+        self.outcomes.add(
+            'failed',
+            'The student did NOT make a submission',
+            score_min)
+        self.outcomes.add(
+            'passed',
+            'The student made a submission',
+            self._score_pass)
 
     def run(self):
         """Delete any previous data from the temp directory and reset it"""
@@ -54,12 +56,15 @@ class StageInit(stage.HandlerPython):
             self._copy_framework_to_temp()
         except stage.StageError as se:
             result = stage.StageResult(stage.StageResult.RESULT_CRITICAL)
+            result.add_score(self.outcomes['failed'].value)
+            result.set_outcome(self.outcomes['failed'])
             result.set_output(self.output)
             result.set_error(str(se))
             return result
 
         result = stage.StageResult(stage.StageResult.RESULT_PASS)
-        result.add_score(self._score_pass)
+        result.add_score(self.outcomes['passed'].value)
+        result.set_outcome(self.outcomes['passed'])
         result.set_output(self.output)
         return result
 

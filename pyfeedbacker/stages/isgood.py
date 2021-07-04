@@ -5,4 +5,4 @@ from app import stage
 
 
 class StageIsgood(stage.HandlerForm):
-    TAG = 'isgood'
+    pass

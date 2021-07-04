@@ -5,6 +5,7 @@ from . import adapters as ua
 from . import header as uh
 from . import sidebar as us
 from . import popup as up
+from . import urwid as uu
 from . import widgets as uw
 
 from math import lcm
@@ -17,15 +18,15 @@ import signal
 class Window:
     SIDEBAR_STAGES, SIDEBAR_STATS = range(0,2)
 
-    def __init__(self, controller, model, sidebar=SIDEBAR_STAGES):
+    def __init__(self, controller, model, view, sidebar=SIDEBAR_STAGES):
         """
         The main application UI.
         """
         self.controller = controller
         self.model      = model
+        self.view       = view
 
         self.palette = [
-            ('header',         '', '', '', 'bold',      '#00f'),
             ('title',          '', '', '', 'bold,#ff0', ''),
             ('selectable',     '', '', '', 'black',     'g58'),
             ('focus',          '', '', '', 'black',     '#ff0'),
@@ -40,6 +41,13 @@ class Window:
             ('edit error',     'white', 'dark red', 'bold'),
             ('edit selected',  'white', 'dark blue', 'bold'),
             ('bg',             '', '', '', 'g7',        '#000')]
+
+        if self.view.app == uu.UrwidView.APP_MARKER:
+            self.palette.append(
+                ('header',         '', '', '', 'bold',      '#00f'))
+        elif self.view.app == uu.UrwidView.APP_WEIGHTER:
+            self.palette.append(
+                ('header',         '', '', '', 'bold',      '#d06'))
 
         self.header  = uh.HeaderWidget(controller, model, self)
 
@@ -254,9 +262,15 @@ class Window:
             raise AttributeError(f'No adapter for output for {stage_id}: ' +
                                  str(output))
 
-        self._output_adapters[stage_id] = sa
-        self._output_adapters[stage_id].set(output)
-        self.redraw_stage(stage_id)
+        try:
+            self._output_adapters[stage_id] = sa
+            self._output_adapters[stage_id].set(output)
+            self.redraw_stage(stage_id)
+        except stage.StageError as se:
+            self.show_alert('Error', str(se), True)
+
+            if self.controller.debug:
+                raise se
 
     def set_text(self, stage_id, text):
         """
@@ -291,11 +305,11 @@ class Window:
 
     def show_custom_alert(self, title, text, callback, options=['Yes','No']):
         w = up.PopupDialog(title, text)
-        
+
         buttons = []
         for option in options:
             buttons.append((option, callback))
-        
+
         w.add_buttons(buttons)
         w.show(self.loop, self.frame)
 

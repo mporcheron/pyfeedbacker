@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
+from .model import outcomes
 from . import config
+
+from collections import OrderedDict
 
 import abc
 import importlib
@@ -48,6 +51,8 @@ class StageInfo:
         self.model      = controller.model
         self.view       = controller.view
 
+        self.debug = config.ini['app'].getboolean('debug', False)
+
         self.stage_id   = stage_id
         self.label      = label
 
@@ -59,8 +64,6 @@ class StageInfo:
         try:
             module = importlib.import_module('stages.' + stage_id, '..')
             self.handler = getattr(module, class_name)
-
-            self.handler.set_framework(self.handler, self.controller)
 
             if handler == 'HandlerNone':
                 self.state  = Stage.STATE_COMPLETE
@@ -81,6 +84,9 @@ class StageInfo:
             self.handler    = HandlerNone
             self.state      = StageInfo.STATE_FAILED
             self.selectable = False
+
+            if self.debug:
+                raise e
 
         self.score_min      = score_min
         self.score_max      = score_max
@@ -110,6 +116,7 @@ class StageResult:
         self.result       = result
         self.score        = 0
         self.feedback     = ''
+        self.outcome      = None
         self.error        = ''
         self.output       = None
 
@@ -126,10 +133,16 @@ class StageResult:
         """
         self.feedback    += ''
 
+    def set_outcome(self, outcome):
+        """
+        Set the outcome for the stage.
+        """
+        self.outcome     = outcome
+
     def set_output(self, output):
         """
         Set the final output for the stage. This should be one of the Output*
-        classes in app.stag.e
+        classes in app.stage.
         """
         self.output      = output
 
@@ -144,21 +157,14 @@ class StageResult:
 
 
 class HandlerBase:
-    TAG = '__'
-
-    def __init__(self):
+    def __init__(self, stage_id):
         """
         A handler is a class that a stage should inherit from and implement
         the required functions. Every stage must be a handler of some form.
         """
-        self.output          = OutputNone()
-
-        try:
-            self.scores_info     = ScoresInfo()
-        except AttributeError:
-            pass
-
-        self.interactive     = False
+        self.output      = OutputNone()
+        self.interactive = False
+        self.stage_id    = stage_id
 
     def set_framework(self, controller):
         """
@@ -169,7 +175,13 @@ class HandlerBase:
         self.model      = controller.model
         self.view       = controller.view
 
-        self.submission       = self.controller.submission
+        try:
+            self.submission   = self.controller.submission
+            self.outcomes     = StageOutcomes()
+            self.calculate_outcomes()
+        except AttributeError:
+            pass
+
         self._dir_temp        = config.ini['app']['dir_temp']
         self._dir_submissions = config.ini['app']['dir_submissions']
 
@@ -177,7 +189,11 @@ class HandlerBase:
         """
         Trigger a UI update at any time for this stage.
         """
-        return self.controller.set_stage_output(self.TAG, self.output)
+        return self.controller.set_stage_output(self.stage_id, self.output)
+
+    @abc.abstractmethod
+    def calculate_outcomes(self):
+        pass
 
     @abc.abstractmethod
     def run(self):
@@ -204,6 +220,7 @@ class HandlerNone(HandlerBase):
 
 class HandlerEditText(HandlerBase):
     def __init__(self,
+                 stage_id,
                  read_only = False):
         """
         Show 1 or more edit text fields that allow the user to read/edit
@@ -213,40 +230,42 @@ class HandlerEditText(HandlerBase):
         if read_only:
             raise NotImplementedError('Read only text is not implemented yet')
 
-        super().__init__()
+        super().__init__(stage_id)
 
         self.interactive     = True
 
 
 
 class HandlerReadText(HandlerEditText):
-    def __init__(self):
+    def __init__(self, stage_id):
         """
         Show 1 or more text fields that allow the user to read text.
         """
-        super().__init__(True)
+        super().__init__(stage_id, True)
 
 
 
 class HandlerForm(HandlerBase):
-    def __init__(self):
+    def __init__(self, stage_id):
         """
         Show an interactive form the user can complete.
         """
-        super().__init__()
-        
-        self.output      = OutputForm(self.TAG)
+        super().__init__(stage_id)
+
+        self.output      = OutputForm(self.stage_id)
         self.interactive = True
 
-    scores_info = property(lambda self:self._calculate_outcomes(), doc="""
+    outcomes = property(lambda self:self._calculate_outcomes(), doc="""
             Calculate information about scores for interactive forms
             """)
 
     def _calculate_outcomes(self):
-        if len(self._scores_info) > 0:
-            return self._scores_info
+        try:
+            return self._outcomes
+        except AttributeError:
+            pass
 
-        self._scores_info = ScoresInfo()
+        self._outcomes = outcomes.Outcomes()
 
         try:
             cfg = config.ini['stage_' + stage_id]
@@ -262,16 +281,16 @@ class HandlerForm(HandlerBase):
             if not k.startswith('question'):
                 continue
 
-            required = cfg.getboolean('required' + num, fallback=False)      
+            required = cfg.getboolean('required' + num, fallback=False)
 
             question_score_min = 0
             question_score_max = 0
-            
+
             if type_str == 'scale':
                 try:
                     for i in range(0, len(scores)):
                         this_score = float(scores[i])
-                        
+
                         if required:
                             question_score_min = min(question_score_min,
                                                      this_score)
@@ -281,16 +300,16 @@ class HandlerForm(HandlerBase):
 
             elif type_str == 'input_score':
                 try:
-                    min_score = cfg.getfloat('min' + num, None)
-                    
+                    score_min = cfg.getfloat('min' + num, None)
+
                     if required:
-                        question_score_min = min(question_score_min, min_score)
+                        question_score_min = min(question_score_min, score_min)
                 except KeyError:
                     pass
 
                 try:
-                    max_score = cfg.getfloat('max' + num, None)
-                    question_score_max = min(question_score_max, max_score)
+                    score_max = cfg.getfloat('max' + num, None)
+                    question_score_max = min(question_score_max, score_max)
                 except KeyError:
                     pass
 
@@ -301,17 +320,17 @@ class HandlerForm(HandlerBase):
             'score_max', None)
         cfg_score_max = config.ini[f'stage_{stage_id}'].getfloat(
             'score_max', None)
-        
+
         if cfg_score_min is not None:
             score_min = max(score_min, cfg_score_min)
-        
+
         if cfg_score_max is not None:
             score_min = min(score_min, cfg_score_max)
 
-        self._scores_info.add_outcome(
+        self._outcomes.add_outcome(
             score_min,
             'The minimum possible score after completing the form')
-        self._scores_info.add_outcome(
+        self._outcomes.add_outcome(
             score_max,
             'The maximum possible score after completing the form')
 
@@ -351,6 +370,16 @@ class StageIgnorableError(StageError):
 
     def __str(self):
         return self._mesg
+
+
+
+class StageOutcomes(dict):
+    def __getitem__(self, key):
+        return super().__getitem__(str(key))
+
+    def add(self, key, explanation, score):
+        key = str(key)
+        self[key] = outcomes.Outcome(key, explanation, score)
 
 
 
@@ -462,16 +491,16 @@ class OutputForm:
 
             elif type_str == 'input_score':
                 try:
-                    min_score = cfg.getfloat('min' + num, None)
+                    score_min = cfg.getfloat('min' + num, None)
                 except KeyError:
-                    min_score = False
+                    score_min = False
 
                 try:
-                    max_score = cfg.getfloat('max' + num, None)
+                    score_max = cfg.getfloat('max' + num, None)
                 except KeyError:
-                    max_score = False
+                    score_max = False
 
-                q.set_input_score(min_score, max_score)
+                q.set_input_score(score_min, score_max)
 
             elif type_str == 'input_feedback':
                 q.set_input_feedback()
@@ -490,26 +519,26 @@ class OutputForm:
             self.num       = num
             self.text      = text
             self.required  = required
-            self.min_score = False
-            self.max_score = False
+            self.score_min = False
+            self.score_max = False
 
         def set_scale(self, scale, scores, feedback):
             self.type      = OutputForm.Question.TYPE_SCALE
             self.scale     = scale
             self.scores    = scores
-            self.min_score = False
-            self.max_score = False
+            self.score_min = False
+            self.score_max = False
             self.feedback  = feedback
 
-        def set_input_score(self, min_score, max_score):
+        def set_input_score(self, score_min, score_max):
             self.type      = OutputForm.Question.TYPE_INPUT_SCORE
-            self.min_score = min_score
-            self.max_score = max_score
+            self.score_min = score_min
+            self.score_max = score_max
 
         def set_input_feedback(self):
             self.type      = OutputForm.Question.TYPE_INPUT_FEEDBACK
-            self.min_score = False
-            self.max_score = False
+            self.score_min = False
+            self.score_max = False
 
 
 
@@ -539,34 +568,3 @@ class OutputChecklist:
     def set_state(self, state, index):
         self.progress[index] = (state, self.progress[index][1])
 
-
-
-class ScoresInfo:
-    def __init__(self, outcomes=set()):
-        self._outcomes = outcomes
-
-    score_min = property(lambda self:min(self._outcomes,
-                                         key=lambda outcome: outcome.score),
-        doc="""
-            Read-only minimum score in the outcomes set.
-            """)
-
-    score_max = property(lambda self:min(self._outcomes,
-                                         key=lambda outcome: outcome.score),
-        doc="""
-            Read-only minimum score in the outcomes set.
-            """)
-
-    outcomes = property(lambda self:sorted(self._outcomes,
-                                           key=lambda outcome: outcome.score),
-        doc="""
-            Read-only set of outcomes, sorted by score.
-            """)
-
-    def add_outcome(self, score, explanation):
-        self._outcomes.add(ScoresInfo.Outcome(score, explanation))
-
-    class Outcome:
-        def __init__(self, score, explanation):
-            self.score       = score
-            self.explanation = explanation
