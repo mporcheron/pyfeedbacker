@@ -125,6 +125,36 @@ class StagesData(OrderedDict):
         except KeyError:
             return False
 
+    list = property(lambda self:self._get_as_list(), doc="""
+            Return the data as a list.
+            """)
+
+    def _get_as_list(self):
+        items = []
+
+        for value in self.values():
+            items += value.list
+
+        return items
+
+    def __list__(self):
+        return self._get_as_list()
+
+    dict = property(lambda self:self._get_as_dict(), doc="""
+            Return the data as a dictionary.
+            """)
+
+    def _get_as_dict(self):
+        items = {}
+
+        for key, value in self.items():
+            items[key] = value.dict
+
+        return items
+
+    def __dict__(self):
+        return self.__get_as_dict()
+
     def clear(self):
         for stage_id in self.keys():
             super().__getitem__(stage_id).clear()
@@ -138,6 +168,9 @@ class StagesScores(StagesData):
     sum = property(lambda self:self._calculate_score(), doc="""
             Read the total score for the submission as a float.
             """)
+
+    def __contains__(self, stage_id):
+        return super().__contains__(stage_id)
 
     def _calculate_score(self):
         score = 0.0
@@ -167,36 +200,6 @@ class StagesFeedback(StagesData):
     def __init__(self):
         super().__init__(Feedbacks)
 
-    list = property(lambda self:self._get_as_list(), doc="""
-            Return the feedbacks as a list.
-            """)
-
-    def _get_as_list(self):
-        feedbacks = []
-
-        for stage_feedback in self.values():
-            feedbacks += stage_feedback.list
-
-        return feedbacks
-
-    def __list__(self):
-        return self._get_as_list()
-
-    dict = property(lambda self:self._get_as_dict(), doc="""
-            Return the feedbacks as a dict.
-            """)
-
-    def _get_as_dict(self):
-        feedbacks = {}
-
-        for key, value in self.items():
-            feedbacks[key] = value
-
-        return feedbacks
-
-    def __dict__(self):
-        return self.__get_as_dict()
-
     def __str__(self):
         feedback = ''
         for stage_feedback in self.values():
@@ -217,12 +220,16 @@ class Data(OrderedDict):
         self._init_value = init_value
 
     def __getitem__(self, data_id):
-        score_id = str(data_id)
+        data_id = str(data_id)
         try:
             return super().__getitem__(data_id)
         except KeyError:
             super().__setitem__(data_id, self._init_value)
             return super().__getitem__(data_id)
+
+    def __setitem__(self, data_id, value):
+        data_id = str(data_id)
+        return super().__setitem__(data_id, value)
 
     def __contains__(self, data_id):
         data_id = str(data_id)
@@ -230,6 +237,28 @@ class Data(OrderedDict):
             return super().__contains__(data_id)
         except KeyError:
             return False
+
+    list = property(lambda self:self._get_as_list(), doc="""
+            Return the data as a list.
+            """)
+
+    @abc.abstractmethod
+    def _get_as_list(self):
+        pass
+
+    def __list__(self):
+        return self._get_as_list()
+
+    dict = property(lambda self:self._get_as_dict(), doc="""
+            Return the feedbacks as a dict.
+            """)
+
+    @abc.abstractmethod
+    def _get_as_dict(self):
+        pass
+
+    def __dict__(self):
+        return self._get_as_dict()
 
     def clear(self):
         for data_id in self.keys():
@@ -242,8 +271,24 @@ class Scores(Data):
         super().__init__(0.0)
 
     def __setitem__(self, score_id, value):
-        score_id = str(score_id)
         return super().__setitem__(score_id, float(value))
+
+    def _get_as_dict(self):
+        scores = {}
+
+        for key, value in self.items():
+            scores[key] = value
+
+        return scores
+
+    def get_as_list(self):
+        scores = []
+
+        for score in self.values():
+            if len(indiv_feedback) > 0:
+                scores.append(score)
+
+        return scores
 
     sum = property(lambda self:self._calculate_score(), doc="""
             Read the total score for the submission as a float.
@@ -270,30 +315,8 @@ class Feedbacks(Data):
         super().__init__('')
 
     def __setitem__(self, feedback_id, value):
-        feedback_id = str(feedback_id)
         value = value.replace('\\n', '\n')
         return super().__setitem__(feedback_id, value)
-
-    list = property(lambda self:self._get_as_list(), doc="""
-            Return the feedbacks as a list.
-            """)
-
-    def _get_as_list(self):
-        feedbacks = []
-
-        for indiv_feedback in self.values():
-            indiv_feedback = indiv_feedback.strip(' ').replace('\\n', '\n')
-            if len(indiv_feedback) > 0:
-                feedbacks.append(indiv_feedback)
-
-        return feedbacks
-
-    def __list__(self):
-        return self._get_as_list()
-
-    dict = property(lambda self:self._get_as_dict(), doc="""
-            Return the feedbacks as a dict.
-            """)
 
     def _get_as_dict(self):
         feedbacks = {}
@@ -304,8 +327,15 @@ class Feedbacks(Data):
 
         return feedbacks
 
-    def __dict__(self):
-        return self._get_as_dict()
+    def get_as_list(self):
+        feedbacks = []
+
+        for indiv_feedback in self.values():
+            indiv_feedback = indiv_feedback.strip(' ').replace('\\n', '\n')
+            if len(indiv_feedback) > 0:
+                feedbacks.append(indiv_feedback)
+
+        return feedbacks
 
     def __str__(self):
         feedback = ''
