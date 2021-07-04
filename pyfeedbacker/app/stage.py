@@ -2,6 +2,7 @@
 
 from . import config
 
+import abc
 import importlib
 import json
 
@@ -151,6 +152,8 @@ class HandlerBase:
         the required functions. Every stage must be a handler of some form.
         """
         self.output          = OutputNone()
+        self.score_info      = None
+        self.interactive     = False
 
     def set_framework(self, controller):
         """
@@ -171,12 +174,14 @@ class HandlerBase:
         """
         return self.controller.set_stage_output(self.TAG, self.output)
 
+    @abc.abstractmethod
     def run(self):
         """
         Execute the stage. Return a StageResult if the stage execution finished.
         """
         pass
 
+    @abc.abstractmethod
     def refresh(self):
         """
         Refresh the stage. This may need to be called if the stage draws on
@@ -199,10 +204,13 @@ class HandlerEditText(HandlerBase):
         Show 1 or more edit text fields that allow the user to read/edit
         text.
         """
+        # FIXME readonly mode not implemented
         if read_only:
             raise NotImplementedError('Read only text is not implemented yet')
 
         super().__init__()
+
+        self.interactive     = True
 
 
 
@@ -220,7 +228,10 @@ class HandlerForm(HandlerBase):
         """
         Show an interactive form the user can complete.
         """
-        self.output = OutputForm(self.TAG)
+        super().__init__()
+        
+        self.output      = OutputForm(self.TAG)
+        self.interactive = True
 
 
 
@@ -230,6 +241,7 @@ class HandlerPython(HandlerBase):
 
 
 class HandlerProcess(HandlerBase):
+    # FIXME HandlerProcess not implemented
     pass
 
 
@@ -307,9 +319,15 @@ class OutputForm:
 
         self.questions = []
 
+        score_min = 0
+        score_max = 0
+
         for k, v in cfg.items():
             if not k.startswith('question'):
                 continue
+                
+            question_score_min = 0
+            question_score_max = 0
 
             num = k[8:]
             required = cfg.getboolean('required' + num, fallback=False)
@@ -337,7 +355,13 @@ class OutputForm:
                 try:
                     scores = cfg['score' + num].split(',')
                     for i in range(0, len(scores)):
-                        scores[i] = float(scores[i])
+                        this_score = float(scores[i])
+                        scores[i] = this_score
+                        
+                        if question.required:
+                            question_score_min = min(question_score_min,
+                                                     this_score)
+                        question_score_max = min(question_score_max, this_score)
 
                     if len(scores) != len(scale):
                         raise StageError('Mismatch with number ' +
@@ -368,11 +392,15 @@ class OutputForm:
             elif type_str == 'input_score':
                 try:
                     min_score = cfg.getfloat('min' + num, None)
+                    
+                    if question.required:
+                        question_score_min = min(question_score_min, min_score)
                 except KeyError:
                     min_score = False
 
                 try:
                     max_score = cfg.getfloat('max' + num, None)
+                    question_score_max = min(question_score_max, max_score)
                 except KeyError:
                     max_score = False
 
@@ -385,7 +413,40 @@ class OutputForm:
                                        type_str + ' for question ' + num + \
                                        '.')
 
+            score_min = min(score_min, question_score_min)
+            score_max = min(score_max, score_max)
             self.questions.append(q)
+
+        
+        cfg_score_min = config.ini[f'stage_{stage_id}'].getfloat(
+            'score_max', None)
+        cfg_score_max = config.ini[f'stage_{stage_id}'].getfloat(
+            'score_max', None)
+        
+        if cfg_score_min is not None:
+            score_min = max(score_min, cfg_score_min)
+        
+        if cfg_score_max is not None:
+            score_min = min(score_min, cfg_score_max)
+
+        self.scores_info.add_outcome(
+            score_min,
+            'The minimum possible score after completing the form')
+        self.scores_info.add_outcome(
+            score_max,
+            'The maximum possible score after completing the form')
+
+    def _calculate_scores_info(self):
+        for question_id, question in enumerate(output.questions):
+        
+        self.scores_info = stage.ScoresInfo()
+        self.scores_info.add_outcome(
+            score_min,
+            'The student did NOT make a submission')
+        self.scores_info.add_outcome(
+            self._score_pass,
+            'The student made a submission')
+
 
     class Question:
         TYPE_SCALE, TYPE_INPUT_SCORE, TYPE_INPUT_FEEDBACK = range(0,3)
@@ -442,3 +503,35 @@ class OutputChecklist:
 
     def set_state(self, state, index):
         self.progress[index] = (state, self.progress[index][1])
+
+
+
+class ScoresInfo:
+    def __init__(self, outcomes=set()):
+        self._outcomes = outcomes
+
+    score_min = property(lambda self:min(self._outcomes,
+                                         key=lambda outcome: outcome.score),
+        doc="""
+            Read-only minimum score in the outcomes set.
+            """)
+
+    score_max = property(lambda self:min(self._outcomes,
+                                         key=lambda outcome: outcome.score),
+        doc="""
+            Read-only minimum score in the outcomes set.
+            """)
+
+    outcomes = property(lambda self:sorted(self._outcomes,
+                                           key=lambda outcome: outcome.score),
+        doc="""
+            Read-only set of outcomes, sorted by score.
+            """)
+
+    def add_outcome(self, score, explanation):
+        self._outcomes.add(ScoresInfo.Outcome(score, explanation))
+
+    class Outcome:
+        def __init__(self, score, explanation):
+            self.score       = score
+            self.explanation = explanation

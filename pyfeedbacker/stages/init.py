@@ -23,6 +23,18 @@ class StageInit(stage.HandlerPython):
             (False, 'Copy submission into temporary directory'),
             (False, 'Copy framework into temporary directory')
         ])
+        
+        self._score_pass = config.ini[f'stage_{StageInit.TAG}'].getfloat(
+            'score_max', None)
+        score_min = config.ini[f'stage_{StageInit.TAG}'].getfloat(
+            'score_max', None)
+        
+        self.scores_info.add_outcome(
+            score_min,
+            'The student did NOT make a submission')
+        self.scores_info.add_outcome(
+            self._score_pass,
+            'The student made a submission')
 
     def run(self):
         """Delete any previous data from the temp directory and reset it"""
@@ -45,8 +57,7 @@ class StageInit(stage.HandlerPython):
             return result
 
         result = stage.StageResult(stage.StageResult.RESULT_PASS)
-        result.add_score(2)
-        result.add_feedback('bloh')
+        result.add_score(self._score_pass)
         result.set_output(self.output)
         return result
 
