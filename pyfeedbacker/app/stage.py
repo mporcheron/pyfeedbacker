@@ -436,17 +436,6 @@ class OutputForm:
             score_max,
             'The maximum possible score after completing the form')
 
-    def _calculate_scores_info(self):
-        for question_id, question in enumerate(output.questions):
-        
-        self.scores_info = stage.ScoresInfo()
-        self.scores_info.add_outcome(
-            score_min,
-            'The student did NOT make a submission')
-        self.scores_info.add_outcome(
-            self._score_pass,
-            'The student made a submission')
-
 
     class Question:
         TYPE_SCALE, TYPE_INPUT_SCORE, TYPE_INPUT_FEEDBACK = range(0,3)
