@@ -31,12 +31,12 @@ class StageInit(stage.HandlerPython):
         score_min = config.ini[f'stage_{self.stage_id}'].getfloat(
             'score_min', None)
         
-        self.outcomes.add(
-            'failed',
+        self.add_outcome(
+            'nosubmission',
             'The student did NOT make a submission',
             score_min)
-        self.outcomes.add(
-            'passed',
+        self.add_outcome(
+            'submitted',
             'The student made a submission',
             self._score_pass)
 
@@ -56,15 +56,15 @@ class StageInit(stage.HandlerPython):
             self._copy_framework_to_temp()
         except stage.StageError as se:
             result = stage.StageResult(stage.StageResult.RESULT_CRITICAL)
-            result.add_score(self.outcomes['failed'].value)
-            result.set_outcome(self.outcomes['failed'])
+            result.add_score(self.outcomes['nosubmission'].value)
+            result.set_outcome(self.outcomes['nosubmission'])
             result.set_output(self.output)
             result.set_error(str(se))
             return result
 
         result = stage.StageResult(stage.StageResult.RESULT_PASS)
-        result.add_score(self.outcomes['passed'].value)
-        result.set_outcome(self.outcomes['passed'])
+        result.add_score(self.outcomes['submitted'].value)
+        result.set_outcome(self.outcomes['submitted'])
         result.set_output(self.output)
         return result
 

@@ -171,19 +171,23 @@ class HandlerBase:
         Set the controller (and by proxy the model and the view). Called by
         the marker controller.
         """
-        self.controller = controller
-        self.model      = controller.model
-        self.view       = controller.view
+        self.controller       = controller
+        self.model            = controller.model
+        self.view             = controller.view
 
         try:
             self.submission   = self.controller.submission
-            self.outcomes     = StageOutcomes()
-            self.calculate_outcomes()
         except AttributeError:
             pass
 
+        self.outcomes         = {}
+        self.calculate_outcomes()
+
         self._dir_temp        = config.ini['app']['dir_temp']
         self._dir_submissions = config.ini['app']['dir_submissions']
+
+    def add_outcome(self, key, explanation, value):
+        self.outcomes[key] = outcomes.Outcome(key, explanation, value)
 
     def update_ui(self):
         """
@@ -255,23 +259,12 @@ class HandlerForm(HandlerBase):
         self.output      = OutputForm(self.stage_id)
         self.interactive = True
 
-    outcomes = property(lambda self:self._calculate_outcomes(), doc="""
-            Calculate information about scores for interactive forms
-            """)
-
-    def _calculate_outcomes(self):
+    def calculate_outcomes(self):
         try:
-            return self._outcomes
-        except AttributeError:
-            pass
-
-        self._outcomes = outcomes.Outcomes()
-
-        try:
-            cfg = config.ini['stage_' + stage_id]
+            cfg = config.ini['stage_' + self.stage_id]
         except KeyError:
-            raise StageError('No stage config for id: ' + stage_id)
-
+            raise StageError('No stage config for id: ' + self.stage_id)
+        
         self.questions = []
 
         score_min = 0
@@ -281,13 +274,16 @@ class HandlerForm(HandlerBase):
             if not k.startswith('question'):
                 continue
 
+            num = k[8:]
             required = cfg.getboolean('required' + num, fallback=False)
 
             question_score_min = 0
             question_score_max = 0
 
+            type_str = cfg['type' + num]
             if type_str == 'scale':
                 try:
+                    scores = cfg['score' + num].split(',')
                     for i in range(0, len(scores)):
                         this_score = float(scores[i])
 
@@ -316,9 +312,9 @@ class HandlerForm(HandlerBase):
             score_min = min(score_min, question_score_min)
             score_max = min(score_max, score_max)
 
-        cfg_score_min = config.ini[f'stage_{stage_id}'].getfloat(
+        cfg_score_min = config.ini[f'stage_{self.stage_id}'].getfloat(
             'score_max', None)
-        cfg_score_max = config.ini[f'stage_{stage_id}'].getfloat(
+        cfg_score_max = config.ini[f'stage_{self.stage_id}'].getfloat(
             'score_max', None)
 
         if cfg_score_min is not None:
@@ -327,12 +323,14 @@ class HandlerForm(HandlerBase):
         if cfg_score_max is not None:
             score_min = min(score_min, cfg_score_max)
 
-        self._outcomes.add_outcome(
-            score_min,
-            'The minimum possible score after completing the form')
-        self._outcomes.add_outcome(
-            score_max,
-            'The maximum possible score after completing the form')
+        self.add_outcome(
+            'score_min',
+            'The minimum possible score after completing the form',
+            score_min)
+        self.add_outcome(
+            'score_max',
+            'The maximum possible score after completing the form',
+            score_max)
 
 
 
@@ -571,9 +569,26 @@ class OutputChecklist:
 
 
 class OutputWeighting:
-    def __init__(self, outcomes):
+    def __init__(self, model, stage_id, outcomes):
         """
         Weighting output for a stage, based on its registered outcomes
         and outcomes awarded to each submission.
         """
-        self.outcomes = outcomes
+        self.model       = model
+        self.stage_id    = stage_id
+        self.outcomes    = outcomes
+        self.performance = self._get_outcomes_from_submissions(outcomes)
+
+    def _get_outcomes_from_submissions(self, outcomes):
+        performance = {}
+        
+        for outcome_id in outcomes.keys():
+            performance[outcome_id] = 0
+        
+        for submission, stages in self.model['outcomes'].items():
+            for outcome_id, outcome in stages[self.stage_id].items():
+                if outcome_id not in performance:
+                    performance[outcome_id] = 1
+                else:
+                    performance[outcome_id] += 1
+        return performance

@@ -16,7 +16,7 @@ import threading
 
 class Controller(controller.BaseController):
 
-    def __init__(self, submission):
+    def __init__(self):
         """
         Controller for weighting all submission components. Generates final
         feedback too.
@@ -28,6 +28,14 @@ class Controller(controller.BaseController):
             return
 
         self.execute_stage(self.stages_ids[0])
+
+    def select_stage(self, stage_id):
+        """
+        Select a stage always.
+        """
+        stage_info = self.stages[stage_id]
+        self.view.show_stage(stage_id, stage_info.label)
+        self.execute_stage(stage_id)
 
     def execute_stage(self, stage_id=None):
         """
@@ -41,64 +49,29 @@ class Controller(controller.BaseController):
         list_stages_info = list(self.stages.items())
         stage_info       = self.stages[stage_id]
 
-    #     # add feedback
-    #     if stage_info.feedback_pre is not None:
-    #         self.add_feedback(stage_id, '__pre', stage_info.feedback_pre)
-    #
-    #     # retrieve the handler
-    #     self.current_stage = (stage_id, stage_info)
-    #     state = stage.StageInfo.STATE_ACTIVE
-    #
-    #     self.view.show_stage(stage_id, stage_info.label)
-    #
-    #     instance = None
-    #     try:
-    #         instance = stage_info.handler()
-    #
-    #         instance.set_framework(self)
-    #
-    #         self.stages_handlers[stage_id] = instance
-    #     except Exception as e:
-    #         result = stage.StageResult(stage.StageResult.RESULT_CRITICAL)
-    #         result.set_error('Failed to start stage handler: ' + str(e))
-    #         self.report(result)
-    #         if self.debug:
-    #             raise e
-    #         return
-    #
-    #     # execute the stage
-    #     if isinstance(instance, stage.HandlerNone):
-    #         state = stage.StageInfo.STATE_COMPLETE
-    #         self.view.set_stage_state(self.current_stage[0], state)
-    #
-    #         if self.progress_on_success:
-    #             self.progress()
-    #
-    #         # add post feedback for None as report() is never called
-    #         feedback_post = stage_info.feedback_post
-    #         if feedback_post is not None and len(feedback_post.strip()) > 0:
-    #             self.add_feedback(stage_id, '__post', feedback_post)
-    #     elif isinstance(instance, stage.HandlerForm):
-    #         state = stage.StageInfo.STATE_ACTIVE
-    #         self.view.set_stage_state(self.current_stage[0], state)
-    #         self.set_stage_output(self.current_stage[0], instance.output)
-    #     else:
-    #         state  = stage.StageInfo.STATE_ACTIVE
-    #         self.view.set_stage_state(self.current_stage[0], state)
-    #
-    #         thread = threading.Thread(target = self._execute_stage,
-    #                                   args   = [instance])
-    #         thread.daemon = True
-    #         self._a_stage_is_active = True
-    #         thread.start()
-    #
-    # def _execute_stage(self, instance):
-    #     result = instance.run()
-    #     if result:
-    #         try:
-    #             self.report(result)
-    #         except stage.StageError as se:
-    #             self.view.show_alert('Error', str(se))
+        # retrieve the handler
+        self.current_stage = (stage_id, stage_info)
+        state = stage.StageInfo.STATE_ACTIVE
+
+        self.view.show_stage(stage_id, stage_info.label)
+
+        instance = None
+        try:
+            instance = stage_info.handler(stage_id)
+            instance.set_framework(self)
+
+            self.stages_handlers[stage_id] = instance
+        except Exception as e:
+            result = stage.StageResult(stage.StageResult.RESULT_CRITICAL)
+            result.set_error('Failed to start stage handler: ' + str(e))
+            self.report(result)
+            if self.debug:
+                raise e
+            return
+
+        output = stage.OutputWeighting(self.model, stage_id, instance.outcomes)
+        self.set_stage_output(self.current_stage[0], output)
+
     #
     # def refresh_stage(self, stage_id):
     #     if stage_id not in self.stages_handlers:

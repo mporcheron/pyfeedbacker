@@ -194,15 +194,14 @@ class AdapterForm(AdapterBase):
     def set(self, output):
         """
         Create an interactive form to be completed by the user. Can contain
-        scale-based questions, score input text fields, feedback input fields
-        and weight input text fields (the latter three are all simple EditText
-        widgets).
+        scale-based questions, score input text fields, feedback input fields.
+        
+        If weighting is True, every field is an input score text field.
         """
         self.outputform = output
 
         contents = []
         current_scale = None
-        temp_contents = []
         min_question_width = 20
 
         self.questions = output.questions
@@ -555,3 +554,161 @@ class AdapterForm(AdapterBase):
 
             outcome['value'] = value
             self.set_outcome(question_id, outcome)
+
+
+
+class AdapterWeighting(AdapterBase):
+    def set(self, output):
+        """
+        Create an interactive form to be completed by the user. Similar to 
+        AdapterForm, but every field is an input score text field.
+        """
+        self.outputform = output
+
+        contents = []
+        current_headings = None
+        min_question_width = 20
+
+        self.outcomes    = output.outcomes
+        self.performance = output.performance
+
+        self._last_selected_widget = None
+        self._skip_on_edit_change = None
+
+        # generate output
+        for outcome_id, outcome_key in enumerate(self.outcomes):
+            outcome = self.outcomes[outcome_key]
+
+            # column headings
+            try:
+                if outcome['all_values'] != None:
+                    headings = [k.explanation for k
+                                in outcome['all_values'].items()]
+                else:
+                    headings = ['Mark']
+                        
+                if current_headings == None or \
+                    current_headings != headings:
+
+                    if current_headings != None:
+                        contents.append(urwid.Divider())
+                        contents.append(urwid.Divider())
+
+                    current_headings = headings
+
+                    w = urwid.Columns([urwid.AttrWrap(
+                                        urwid.Padding(urwid.Text(item),
+                                                     'center', 'pack'),
+                                       'table header')
+                                          for item in headings],
+                                      dividechars = 1)
+                    w = urwid.Columns([
+                                        urwid.AttrWrap(urwid.Divider(),
+                                                      'table header'),
+                                        w],
+                                      min_width = min_question_width,
+                                      dividechars = 1)
+
+                    contents.append(w)
+
+            except AttributeError:
+                contents.append(urwid.Divider())
+                current_headings = None
+
+            # generate input fields
+            inputs = []
+            
+            if outcome['all_values'] != None:
+                pass
+                # inputs += self._generate_multi_outcome(outcome_id,
+                #                                        outcome,
+                #                                        self.performance)
+            else:
+                inputs += self._generate_single_outcome(outcome_id,
+                                                        outcome,
+                                                        self.performance)
+
+            # bring it together
+            w_inputs        = [uw.JumpableColumns(inputs, dividechars = 1)]
+            w_question_text = [urwid.AttrWrap(urwid.Text(outcome.explanation),
+                                           'table row')]
+
+            w = urwid.Columns(w_question_text + w_inputs,
+                              min_width   = min_question_width,
+                              dividechars = 1)
+
+            contents.append(urwid.Divider())
+            contents.append(w)
+            contents.append(urwid.Divider())
+
+        self.view_focus = [1]
+
+        super().set(contents)
+
+        focus_path = self.window.frame.get_focus_path()
+
+        result = stage.StageResult(stage.StageResult.RESULT_PASS_NONFINAL)
+        self.controller.report(result, self.stage_id)
+
+        self.window.frame.set_focus_path(focus_path)
+
+    def _generate_single_outcome(self, outcome_id, outcome, performance):
+        existing_score = None
+        ws = []
+
+        # if outcome is None:
+        #     if question.required:
+        #         self.required_not_completed.add(question_id)
+        #
+        #     outcome = outcomes.Outcome('input', question.text)
+        #     self._possible_outcomes[question_id] = outcome
+        # else:
+        #     # determine if score is valid, and add feedback if missing
+        #     score_value = self.scores[self.stage_id][question_id]
+        #     outcome_value = float(outcome['value'])
+        #     if score_value != outcome_value:
+        #         raise stage.StageError(f'Score is different in outcomes when '
+        #                                f'compared to existing score for '
+        #                                f'question {question.num} in '
+        #                                f'{self.stage_id}. Outcome value is '
+        #                                f'{outcome["value"]} whereas saved'
+        #                                f' score is {score_value}.')
+        #
+        #     if question.score_min > outcome_value:
+        #         outcome['value'] = question.score_min
+        #     elif question.score_max < outcome_value:
+        #         outcome['value'] = question.score_max
+        #
+        #     existing_score = outcome['value']
+        #
+        #     self._possible_outcomes[question_id] = \
+        #         outcomes.Outcome('input', question.text, existing_score)
+
+        num_submissions = self.performance[outcome.key]
+        total_submissions = sum(self.performance.values())
+        percent_submissions = num_submissions/total_submissions*100
+        
+        # generate UI elements
+        w = urwid.Edit('',
+                       str(outcome.value),
+                       align = 'center')
+        urwid.connect_signal(w,
+                            'postchange',
+                            self._on_edit_change,
+                            outcome_id)
+        w = urwid.AttrMap(w, 'edit', 'edit selected')
+        ws.append(w)
+        
+        w = urwid.Text(f'{num_submissions}/{total_submissions} '
+                       f'{percent_submissions:.2f}%')
+        w = urwid.Padding(w, 'center', 'pack')
+        w = urwid.AttrMap(w, 'faded')
+        ws.append(w)
+        
+        return [urwid.Pile(ws)]
+
+    def _on_edit_change(self, w, old_value, question_id):
+        """
+        Callback for when any edit text box is updated.
+        """
+        pass

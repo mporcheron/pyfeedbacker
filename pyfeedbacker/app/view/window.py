@@ -37,6 +37,7 @@ class Window:
             ('stage hover',    '', '', '', '#fff',      '#000'),
             ('table header',   '', '', '', '#fff,bold', 'g23'),
             ('table row',      '', '', '', '#fff,bold',  ''),
+            ('faded',          '', '', '', 'g52',        ''),
             ('edit',           'light gray', 'dark blue'),
             ('edit error',     'white', 'dark red', 'bold'),
             ('edit selected',  'white', 'dark blue', 'bold'),
@@ -181,7 +182,7 @@ class Window:
             adapter = self._output_adapters[self.visible_stage_id]
             output += adapter.output
         else:
-            output.append(urwid.Text('This stage has not yet executed.'))
+            output.append(urwid.Text('This stage has not generated an output.'))
 
         output.append(urwid.Divider())
 
@@ -258,11 +259,11 @@ class Window:
                                      self.controller,
                                      self.model,
                                      self)
-        elif isinstance(output, stage.OutputWeightings):
-            sa = ua.AdapterWeightings(stage_id,
-                                      self.controller,
-                                      self.model,
-                                      self)
+        elif isinstance(output, stage.OutputWeighting):
+            sa = ua.AdapterWeighting(stage_id,
+                                     self.controller,
+                                     self.model,
+                                     self)
         else:
             raise AttributeError(f'No adapter for output for {stage_id}: ' +
                                  str(output))

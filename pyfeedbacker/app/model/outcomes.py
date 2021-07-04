@@ -49,16 +49,18 @@ class Outcomes(base.Data):
 
 
 class Outcome(dict):
-    def __init__(self, key=None, explanation=None, value=None):
+    def __init__(self, key=None, explanation=None, value=None, all_values=None):
         super().__init__()
 
         self['key']         = key
         self['explanation'] = explanation
         self['value']       = value
+        self['all_values']  = all_values
 
     def __getattr__(self, key):
+        key = str(key)
         try:
-            return self[key]
+            return super().__getitem__(key)
         except KeyError:
             return super().__getattr__(key)
 

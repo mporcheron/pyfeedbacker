@@ -72,6 +72,25 @@ class Controller(controller.BaseController):
     def set_outcome(self, stage_id, outcome_id, outcome):
         self.outcomes[stage_id][outcome_id] = outcome
 
+    def select_stage(self, stage_id):
+        """
+        Select a stage and:
+        1) if it hasn't been executed, and
+        2) everything before it has been executed
+        then it will be executed
+        """
+        stage_info = self.stages[stage_id]
+
+        if self._next_stage_id == stage_id:
+            self.view.show_stage(stage_id, stage_info.label)
+            self.execute_stage(stage_id)
+        else:
+            try:
+                self.refresh_stage(stage_id)
+            except stage.StageIgnorableError:
+                pass
+            self.view.show_stage(stage_id, stage_info.label)
+
     def execute_stage(self, stage_id=None):
         """
         Execute a stage if it hasn't been executed yet and is ready for
@@ -132,7 +151,7 @@ class Controller(controller.BaseController):
 
             if next_stage.state == stage.StageInfo.STATE_INACTIVE:
                 self._next_stage_id = next_stage_id
-                    
+
             if self.progress_on_success:
                 self.execute_stage(next_stage_id)
 
@@ -180,7 +199,7 @@ class Controller(controller.BaseController):
             self.add_score(stage_id, 'reported', result.score)
 
         if result.outcome is not None:
-            self.set_outcome(stage_id, 'reported', result.outcome)
+            self.set_outcome(stage_id, result.outcome.key, result.outcome)
 
         if result.result == stage.StageResult.RESULT_PASS or \
                 result.result == stage.StageResult.RESULT_PASS_NONFINAL:

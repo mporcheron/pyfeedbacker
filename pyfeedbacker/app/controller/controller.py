@@ -79,25 +79,6 @@ class BaseController:
 
         self.view.append_stages(self.stages)
 
-    def select_stage(self, stage_id):
-        """
-        Select a stage and:
-        1) if it hasn't been executed, and
-        2) everything before it has been executed
-        then it will be executed
-        """
-        stage_info = self.stages[stage_id]
-
-        if self._next_stage_id == stage_id:
-            self.view.show_stage(stage_id, stage_info.label)
-            self.execute_stage(stage_id)
-        else:
-            try:
-                self.refresh_stage(stage_id)
-            except stage.StageIgnorableError:
-                pass
-            self.view.show_stage(stage_id, stage_info.label)
-
     def get_next_stage_id(self, stage_id):
         pos = self.stages_ids.index(stage_id)
         if pos+1 < len(self.stages_ids):

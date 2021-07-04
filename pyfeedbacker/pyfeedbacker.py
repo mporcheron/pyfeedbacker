@@ -19,5 +19,3 @@ def start_weighter():
     m = model.FileSystemModel()
     v = view.UrwidView(c, m)
     c.set_model(m).set_view(v).start()
-
-    raise NotImplementedError('Weighting application is not implemented yet')
