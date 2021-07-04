@@ -568,3 +568,12 @@ class OutputChecklist:
     def set_state(self, state, index):
         self.progress[index] = (state, self.progress[index][1])
 
+
+
+class OutputWeighting:
+    def __init__(self, outcomes):
+        """
+        Weighting output for a stage, based on its registered outcomes
+        and outcomes awarded to each submission.
+        """
+        self.outcomes = outcomes

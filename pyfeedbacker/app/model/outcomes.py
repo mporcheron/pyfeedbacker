@@ -1,17 +1,16 @@
 # -*- coding: utf-8 -*-
 
-from .. import config
-from .. import stage
-from . import model
-
-from collections import OrderedDict
-
-import abc
-import csv
+from . import base
 
 
 
-class Outcomes(model.Data):
+class StagesOutcomes(base.StagesData):
+    def __init__(self):
+        super().__init__(Outcomes)
+
+
+
+class Outcomes(base.Data):
     def __init__(self, stage_id):
         super().__init__(stage_id, None)
 
