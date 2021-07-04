@@ -127,8 +127,14 @@ class Controller(controller.BaseController):
             state = stage.StageInfo.STATE_COMPLETE
             self.view.set_stage_state(self.current_stage[0], state)
 
+            next_stage_id = self.get_next_stage_id(stage_id)
+            next_stage    = self.stages[next_stage_id]
+
+            if next_stage.state == stage.StageInfo.STATE_INACTIVE:
+                self._next_stage_id = next_stage_id
+                    
             if self.progress_on_success:
-                self.progress()
+                self.execute_stage(next_stage_id)
 
             # add post feedback for None as report() is never called
             feedback_post = stage_info.feedback_post
