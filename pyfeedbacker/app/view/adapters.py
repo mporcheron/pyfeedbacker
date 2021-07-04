@@ -229,8 +229,6 @@ class AdapterForm(AdapterBase):
                 existing_score_f = None
                 existing_score_s = ''
 
-                self.add_score(question_id, 0.0)
-
             existing_feedback = ''
             if question_id in self.feedbacks[self.stage_id]:
                 existing_feedback = self.feedbacks[self.stage_id][question_id]
@@ -239,12 +237,10 @@ class AdapterForm(AdapterBase):
                 try:
                     pos = question.scores.index(existing_score_f)
                     existing_feedback = question.feedback[pos]
+                    self.add_feedback(question_id, existing_feedback)
                 except ValueError:
                     existing_score_f = None
                     existing_score_s = ''
-                    self.add_score(question_id, 0.0)
-
-                self.add_feedback(question_id, existing_feedback)
 
             # show question per row
             question_text = [urwid.AttrWrap(urwid.Text(text),

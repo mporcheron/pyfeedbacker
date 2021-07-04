@@ -155,10 +155,6 @@ class StagesData(OrderedDict):
     def __dict__(self):
         return self.__get_as_dict()
 
-    def clear(self):
-        for stage_id in self.keys():
-            super().__getitem__(stage_id).clear()
-
 
 
 class StagesScores(StagesData):
@@ -259,10 +255,6 @@ class Data(OrderedDict):
 
     def __dict__(self):
         return self._get_as_dict()
-
-    def clear(self):
-        for data_id in self.keys():
-           super().__setitem__(data_id, self._init_value)
 
 
 
