@@ -52,7 +52,7 @@ class Window:
         self.header  = uh.HeaderWidget(controller, model, self)
 
         if sidebar is Window.SIDEBAR_STAGES:
-            self.sidebar = us.SidebarStagesWidget(controller, model, self)
+            self.sidebar = us.SidebarStagesWidget(controller, model, view, self)
         elif sidebar is Window.SIDEBAR_STATS:
             raise NotImplementedError('Statistics sidebar not implemented')
         else:
@@ -255,9 +255,14 @@ class Window:
             sa = ua.AdapterForm(stage_id, self.controller, self.model, self)
         elif isinstance(output, stage.OutputChecklist):
             sa = ua.AdapterChecklist(stage_id,
-                                    self.controller,
-                                    self.model,
-                                    self)
+                                     self.controller,
+                                     self.model,
+                                     self)
+        elif isinstance(output, stage.OutputWeightings):
+            sa = ua.AdapterWeightings(stage_id,
+                                      self.controller,
+                                      self.model,
+                                      self)
         else:
             raise AttributeError(f'No adapter for output for {stage_id}: ' +
                                  str(output))

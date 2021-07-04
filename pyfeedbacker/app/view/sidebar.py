@@ -2,6 +2,7 @@
 
 from .. import stage
 from . import adapters as ua
+from . import urwid as uu
 from . import widgets as uw
 
 import urwid
@@ -11,14 +12,17 @@ import urwid
 class SidebarStagesWidget(urwid.WidgetWrap):
     SIDEBAR_WIDTH = 32
 
-    def __init__(self, controller, model, window):
+    def __init__(self, controller, model, view, window):
         """Create the sidebar of the UI for selecting stages."""
         self.controller = controller
         self.model      = model
+        self.view       = view
         self.window     = window
 
         self._stages_buttons = {}
         self._stages         = []
+        
+        self._show_state = self.view.app == uu.UrwidView.APP_MARKER
 
         contents = [urwid.Divider(),
                     urwid.AttrWrap(urwid.Text(u'Stage'),
@@ -46,7 +50,8 @@ class SidebarStagesWidget(urwid.WidgetWrap):
                                             self.get_width(),
                                             stage_info.state,
                                             self._on_select_stage,
-                                            stage_info)
+                                            stage_info,
+                                            self._show_state)
         self._stages_buttons[stage_info.stage_id] = w
         self._stages.append(stage_info)
 
@@ -100,13 +105,15 @@ class SidebarStagesWidget(urwid.WidgetWrap):
                      label,
                      width,
                      state,
-                     on_press  = None,
-                     user_data = None):
+                     on_press   = None,
+                     user_data  = None,
+                     show_state = True):
             """
             Button for the user to select on the sidebar.
             """
             self._stage_label = label
             self._width       = width
+            self._show_state  = show_state
 
             label = self.generate_label(state)
             super().__init__(label, on_press, user_data)
@@ -122,17 +129,20 @@ class SidebarStagesWidget(urwid.WidgetWrap):
             """
             Retrieve the icon for the current state of the stage.
             """
-            padding = ' ' * (self._width - 3 - len(self._stage_label) - 5   )
-            if state == stage.StageInfo.STATE_INACTIVE:
-                return (padding, '・')
-            elif state == stage.StageInfo.STATE_ACTIVE:
-                return (padding, '✽')
-            elif state == stage.StageInfo.STATE_COMPLETE:
-                return (padding, '✓')
-            elif state == stage.StageInfo.STATE_FAILED:
-                return (padding, '✗')
-            else:
-                return (padding, '!')
+            padding = ' ' * (self._width - 3 - len(self._stage_label) - 5)
+            if self._show_state:
+                if state == stage.StageInfo.STATE_INACTIVE:
+                    return (padding, '・')
+                elif state == stage.StageInfo.STATE_ACTIVE:
+                    return (padding, '✽')
+                elif state == stage.StageInfo.STATE_COMPLETE:
+                    return (padding, '✓')
+                elif state == stage.StageInfo.STATE_FAILED:
+                    return (padding, '✗')
+                else:
+                    return (padding, '!')
+                    
+            return (padding, ' ')
 
         def set_state(self, state):
             """
