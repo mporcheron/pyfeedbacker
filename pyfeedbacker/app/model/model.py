@@ -115,7 +115,7 @@ class StagesData(OrderedDict):
         try:
             return super().__getitem__(stage_id)
         except KeyError:
-            super().__setitem__(stage_id, self._data_type())
+            super().__setitem__(stage_id, self._data_type(stage_id))
             return super().__getitem__(stage_id)
 
     def __contains__(self, stage_id):
@@ -126,7 +126,7 @@ class StagesData(OrderedDict):
             return False
 
     list = property(lambda self:self._get_as_list(), doc="""
-            Return the data as a list.
+            Get a copy of the data as a list.
             """)
 
     def _get_as_list(self):
@@ -141,7 +141,7 @@ class StagesData(OrderedDict):
         return self._get_as_list()
 
     dict = property(lambda self:self._get_as_dict(), doc="""
-            Return the data as a dictionary.
+            Get a copy of the data as a dictionary.
             """)
 
     def _get_as_dict(self):
@@ -162,7 +162,7 @@ class StagesScores(StagesData):
         super().__init__(Scores)
 
     sum = property(lambda self:self._calculate_score(), doc="""
-            Read the total score for the submission as a float.
+            Read-only total score for the submission as a float.
             """)
 
     def __contains__(self, stage_id):
@@ -207,20 +207,21 @@ class StagesFeedback(StagesData):
 
 
 class Data(OrderedDict):
-    def __init__(self, init_value):
+    def __init__(self, stage_id, init_value):
         """
         Base data class for the model. Its expected that any specific data
         type will extended this class and provide an initial/default value
         through calling __init__ on super()
         """
-        self._init_value = init_value
+        self.stage_id   = stage_id
+        self.init_value = init_value
 
     def __getitem__(self, data_id):
         data_id = str(data_id)
         try:
             return super().__getitem__(data_id)
         except KeyError:
-            super().__setitem__(data_id, self._init_value)
+            super().__setitem__(data_id, self.init_value)
             return super().__getitem__(data_id)
 
     def __setitem__(self, data_id, value):
@@ -259,8 +260,8 @@ class Data(OrderedDict):
 
 
 class Scores(Data):
-    def __init__(self):
-        super().__init__(0.0)
+    def __init__(self, stage_id):
+        super().__init__(stage_id, 0.0)
 
     def __setitem__(self, score_id, value):
         return super().__setitem__(score_id, float(value))
@@ -292,6 +293,14 @@ class Scores(Data):
         for value in self.values():
             score += value
 
+        s_max = config.ini[f'stage_{self.stage_id}'].getfloat('score_max', None)
+        if s_max is not None and score > s_max:
+            score = s_max
+
+        s_min = config.ini[f'stage_{self.stage_id}'].getfloat('score_min', None)
+        if s_min is not None and score < s_min:
+            score = s_min
+
         return score
 
     def __float__(self):
@@ -303,8 +312,8 @@ class Scores(Data):
 
 
 class Feedbacks(Data):
-    def __init__(self):
-        super().__init__('')
+    def __init__(self, stage_id):
+        super().__init__(stage_id, '')
 
     def __setitem__(self, feedback_id, value):
         value = value.replace('\\n', '\n')
