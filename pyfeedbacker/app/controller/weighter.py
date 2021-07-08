@@ -23,6 +23,24 @@ class Controller(controller.BaseController):
         """
         super().__init__()
 
+    def set_model(self, model):
+        """
+        Set the model that'll store information about all the submissions.
+        """
+        super().set_model(model)
+        self.weights   = model['weights']
+        return self
+
+    def set_weight(self, stage_id, outcome_id, value_id, value):
+        if value_id is None:
+            self.weights[stage_id][outcome_id] = value
+        else:
+            try:
+                self.weights[stage_id][outcome_id][value_id] = value
+            except AttributeError:
+                self.weights[stage_id][outcome_id][value_id] = {}
+                self.weights[stage_id][outcome_id][value_id] = value
+
     def execute_first_stage(self):
         if self._next_stage_id is not None:
             return
@@ -73,64 +91,3 @@ class Controller(controller.BaseController):
 
         self.view.set_stage_state(stage_id, stage.StageInfo.STATE_COMPLETE)
         self.set_stage_output(self.current_stage[0], output)
-
-    #
-    # def refresh_stage(self, stage_id):
-    #     if stage_id not in self.stages_handlers:
-    #         raise stage.StageIgnorableError('Stage has not yet executed.')
-    #
-    #     instance = self.stages_handlers[stage_id]
-    #     instance.refresh()
-    #     self.set_stage_output(stage_id, instance.output)
-    #
-    # def report(self, result, stage_id=None, stage_info=None):
-    #     """Report a stage result to the UI"""
-    #     if stage_id is None or stage_info is None:
-    #         stage_id   = self.current_stage[0]
-    #         stage_info = self.current_stage[1]
-    #
-    #     self.add_score(stage_id, 'reported', result.score)
-    #
-    #     if result.result == stage.StageResult.RESULT_PASS or \
-    #             result.result == stage.StageResult.RESULT_PASS_NONFINAL:
-    #         state = stage.StageInfo.STATE_COMPLETE
-    #         self.view.set_stage_state(stage_id, state)
-    #
-    #         if result.output is not None:
-    #             self.set_stage_output(stage_id, result.output)
-    #         try:
-    #             next_stage_id = self.get_next_stage_id(stage_id)
-    #             next_stage    = self.stages[next_stage_id]
-    #
-    #             if next_stage.state == stage.StageInfo.STATE_INACTIVE:
-    #                 self._next_stage_id = next_stage_id
-    #
-    #             if result.result == stage.StageResult.RESULT_PASS and \
-    #                     self.progress_on_success:
-    #                 self.execute_stage(next_stage_id)
-    #         except KeyError:
-    #             pass
-    #
-    #     elif result.result == stage.StageResult.RESULT_PARTIAL:
-    #         state = stage.StageInfo.STATE_COMPLETE
-    #         self.view.set_stage_state(stage_id, state)
-    #         self.set_stage_output(stage_id, result.output)
-    #
-    #     else:
-    #         state  = stage.StageInfo.STATE_FAILED
-    #
-    #         if stage_info.halt_on_error:
-    #             for _, stage_ in self.stages.items():
-    #                 stage_.set_state(stage.StageInfo.STATE_FAILED)
-    #
-    #         self.view.set_stage_state(self.current_stage[0], state)
-    #         self.set_stage_output(self.current_stage[0], result.output)
-    #
-    #         self.view.show_alert(stage_info.label,
-    #                              result.error,
-    #                              stage_info.halt_on_error)
-    #
-    #     feedback_post = stage_info.feedback_post
-    #     if feedback_post is not None and len(feedback_post.strip()) > 0:
-    #         self.add_feedeback(stage_id, '__post', feedback_post)
-    #

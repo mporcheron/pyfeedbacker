@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .. import config
-from . import scores, feedbacks, outcomes
+from . import scores, feedbacks, outcomes, weights
 
 from collections import OrderedDict
 
@@ -15,21 +15,15 @@ class BaseModel(object):
         All class and feedback should be stored in a storage model of some
         form
         """
-        self._scores    = AllSubmissions(scores.StagesScores)
-        self._feedbacks = AllSubmissions(feedbacks.StagesFeedback)
-        self._outcomes  = AllSubmissions(outcomes.StagesOutcomes)
+        self.scores    = AllSubmissions(scores.StagesScores)
+        self.feedbacks = AllSubmissions(feedbacks.StagesFeedback)
+        self.outcomes  = AllSubmissions(outcomes.StagesOutcomes)
+        self.weights   = AllSubmissions(weights.StagesWeights)
 
         self._set_init_data()
 
     def __getitem__(self, type):
-        if type == 'scores':
-            return self._scores
-        elif type == 'feedbacks':
-            return self._feedbacks
-        elif type == 'outcomes':
-            return self._outcomes
-        else:
-            raise KeyError(f'Unknown model data type: f{type}')
+        return super().__getattribute__(type)
 
     def _set_init_data(self):
         score_init = config.ini['assessment'].getfloat('score_init', None)

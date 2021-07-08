@@ -119,6 +119,21 @@ class FileSystemModel(model.BaseModel):
         except FileNotFoundError:
             pass
 
+        # load weights
+        try:
+            file_weights = config.ini['model_file']['file_weights']
+            with open(file_weights, 'r') as json_file:
+                for stage_id, stages in json.load(json_file).items():
+                    for outcome_id, weight in stages.items():
+                        if weight is None:
+                            continue
+
+                        self['weights'][stage_id][outcome_id] = weight
+        except json.decoder.JSONDecodeError:
+            pass
+        except FileNotFoundError:
+            pass
+
     def _get_csv_title(self, marks):
         return config.ini['app']['name'] + \
                (' marks' if marks else ' scores')
@@ -161,6 +176,7 @@ class FileSystemModel(model.BaseModel):
         self._save_scores()
         self._save_feedbacks()
         self._save_outcomes()
+        self._save_weights()
 
     def _save_scores(self, only_save_marks=False):
         file_name = config.ini['model_file']['file_scores']
@@ -226,3 +242,8 @@ class FileSystemModel(model.BaseModel):
         file_name = config.ini['model_file']['file_outcomes']
         with open(file_name, 'w') as json_file:
             json_file.write(json.dumps(self['outcomes'].dict))
+
+    def _save_weights(self):
+        file_name = config.ini['model_file']['file_weights']
+        with open(file_name, 'w') as json_file:
+            json_file.write(json.dumps(self['weights'].dict))

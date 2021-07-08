@@ -2,7 +2,7 @@
 
 from .. import config, stage
 from ..model import outcomes
-from ..controller import marker
+from ..controller import marker, weighter
 from . import widgets as uw
 
 import urwid
@@ -31,11 +31,14 @@ class AdapterNone:
 
         # if this is the marker, set some more variables
         self.marker_app = isinstance(controller, marker.Controller)
+        self.weighter_app = isinstance(controller, weighter.Controller)
 
         if self.marker_app:
             self.scores    = model['scores'][controller.submission]
             self.feedbacks = model['feedbacks'][controller.submission]
             self.outcomes  = model['outcomes'][controller.submission]
+        elif self.weighter_app:
+            self.weights   = model['weights']
 
             # initial score
             score_init = config.ini[f'stage_{stage_id}'].getfloat(
@@ -93,6 +96,18 @@ class AdapterNone:
             self.controller.set_outcome(self.stage_id,
                                         outcome_id,
                                         outcome)
+
+    def set_weight(self, outcome_id, value_id, value):
+        """
+        Weights for the conversion from scores to marks (calls through to the model).
+
+        Only works in weighter app.
+        """
+        if self.weighter_app:
+            self.controller.set_weight(self.stage_id,
+                                        outcome_id,
+                                        value_id,
+                                        value)
 
 
 
@@ -507,12 +522,9 @@ class AdapterForm(AdapterBase):
         if self._skip_on_edit_change == w:
             self._skip_on_edit_change = None
             return
-        
-        question     = self.questions[question_id]
 
         self._last_selected_widget = w
 
-        # question = self.questions[user_data]
         value = w.get_edit_text()
         q = self.questions[question_id]
 
@@ -542,23 +554,23 @@ class AdapterForm(AdapterBase):
 
                 outcome['value'] = value
 
-                self.add_score(question.num, value)
-                self.set_outcome(question.num, outcome)
+                self.add_score(q.num, value)
+                self.set_outcome(q.num, outcome)
             except ValueError:
                 if q.score_min != False:
                     outcome['value'] = value
-                    self.add_score(question.num, q.score_min)
-                    self.set_outcome(question.num, outcome)
+                    self.add_score(q.num, q.score_min)
+                    self.set_outcome(q.num, outcome)
                 else:
                     outcome['value'] = 0.0
-                    self.add_score(question.num, 0.0)
-                    self.set_outcome(question.num, outcome)
+                    self.add_score(q.num, 0.0)
+                    self.set_outcome(q.num, outcome)
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''
-            self.add_feedback(question.num, value)
+            self.add_feedback(q.num, value)
 
             outcome['value'] = value
-            self.set_outcome(question.num, outcome)
+            self.set_outcome(q.num, outcome)
 
 
 
@@ -670,15 +682,26 @@ class AdapterWeighting(AdapterBase):
         # generate UI elements
         inputs = []
         
-        for value_index, value in enumerate(outcome.all_values):
+        for weight_id, value in enumerate(outcome.all_values):
+            the_value = value[1]
+            # replace value if in model
+            model_value = self.weights[self.stage_id][outcome_id]\
+                    [str(weight_id)]
+            if model_value is not None:
+                the_value = model_value
+            else:
+                self.set_weight(outcome_id,
+                                weight_id,
+                                float(the_value))
+            
             ws = []
             w = urwid.Edit('',
-                           str(value[1]),
+                           str(the_value),
                            align = 'center')
             urwid.connect_signal(w,
                                 'postchange',
                                 self._on_edit_change,
-                                value_index)
+                                (outcome_id, weight_id))
             w = urwid.AttrMap(w, 'edit', 'edit selected')
             ws.append(w)
 
@@ -720,6 +743,15 @@ class AdapterWeighting(AdapterBase):
         else:
             value = str(outcome.value)
 
+        # replace value if in model
+        model_value = self.weights[self.stage_id][outcome_id]
+        if model_value is not None:
+            value = str(model_value)
+        else:
+            self.set_weight(outcome_id,
+                            None,
+                            float(value))
+
         # generate UI elements
         w = urwid.Edit('',
                        value,
@@ -727,9 +759,10 @@ class AdapterWeighting(AdapterBase):
         urwid.connect_signal(w,
                             'postchange',
                             self._on_edit_change,
-                            outcome_id)
+                            (outcome_id, None))
         w = urwid.AttrMap(w, 'edit', 'edit selected')
         ws.append(w)
+
         
         w = urwid.Text(f'{num_submissions}/{total_submissions} '
                        f'{percent_submissions:.2f}%')
@@ -739,8 +772,26 @@ class AdapterWeighting(AdapterBase):
         
         return [urwid.Pile(ws)]
 
-    def _on_edit_change(self, w, old_value, question_id):
+    def _on_edit_change(self, w, old_value, outcome_ids):
         """
         Callback for when any edit text box is updated.
         """
-        pass
+        if self._skip_on_edit_change == w:
+            self._skip_on_edit_change = None
+            return
+
+        self._last_selected_widget = w
+
+        value = w.get_edit_text()
+
+        outcome_id = outcome_ids[0]
+
+        weight_id = None
+        if outcome_ids[1] is not None:
+            weight_id = outcome_ids[1]
+
+        try:
+            value = float(value) if value is not None else 0.0
+            self.set_weight(outcome_id, weight_id, value)
+        except ValueError:
+            self.set_weight(outcome_id, weight_id, 0.0)
