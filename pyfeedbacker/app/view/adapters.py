@@ -595,6 +595,8 @@ class AdapterWeighting(AdapterBase):
                 if outcome['all_values'] != None:
                     headings = [k[0] for k
                                 in outcome['all_values']]
+                elif outcome['value'] is None:
+                    headings = ['Scale Factor']
                 else:
                     headings = ['Mark']
                         
@@ -703,11 +705,10 @@ class AdapterWeighting(AdapterBase):
         total_submissions = 0
         percent_submissions = 0
         try:
-            for num in performance.values():
-                try:
-                    total_submissions += sum(num.values())
-                except:
-                    total_submissions += num
+            try:
+                total_submissions += performance[outcome_id]
+            except:
+                total_submissions += sum(performance.values())
             percent_submissions = num_submissions/total_submissions*100
         except:
             pass
