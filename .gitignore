@@ -135,3 +135,5 @@ _submissions/*
 !_submissions/empty.txt
 _temp/*
 !_temp/empty.txt
+.vscode/launch.json
+.vscode/settings.json

@@ -77,16 +77,17 @@ class AdapterNone:
 
     def set_outcome(self,
                     outcome_id,
-                    outcome=None,
-                    explanation=None,
-                    score=None):
+                    outcome     = None,
+                    key         = None,
+                    explanation = None,
+                    value       = None):
         """
         Add to the submission's outcome (calls through to the model).
 
         Only works in marker app.
         """
         if outcome is None:
-            outcome = outcomes.Outcome(outcome_id, explanation, score)
+            outcome = outcomes.Outcome(key, explanation, value)
 
         if self.marker_app:
             self.controller.set_outcome(self.stage_id,
@@ -258,8 +259,8 @@ class AdapterForm(AdapterBase):
 
             # existing values in the model?
             outcome = None
-            if question_id in self.outcomes[self.stage_id]:
-                outcome = self.outcomes[self.stage_id][question_id]
+            if question.num in self.outcomes[self.stage_id]:
+                outcome = self.outcomes[self.stage_id][question.num]
 
             # generate input fields
             inputs = []
@@ -300,7 +301,7 @@ class AdapterForm(AdapterBase):
 
         if outcome is None:
             if question.required:
-                self.required_not_completed.add(question_id)
+                self.required_not_completed.add(question.num)
 
             outcome = outcomes.Outcome('?', question.text)
             self._possible_outcomes[question_id] = outcome
@@ -316,7 +317,7 @@ class AdapterForm(AdapterBase):
                                        f' whereas configuration says it should'
                                        f'be {question.scores[outcome["key"]]}.')
 
-            score_value = self.scores[self.stage_id][question_id]
+            score_value = self.scores[self.stage_id][question.num]
             if score_value != outcome_value:
                 raise stage.StageError(f'Score is different in outcomes when '
                                        f'compared to existing score for '
@@ -329,7 +330,7 @@ class AdapterForm(AdapterBase):
 
             if outcome['key'] not in question.feedback:
                 feedback = question.feedback[outcome['key']]
-                self.add_feedback(question_id, feedback)
+                self.add_feedback(question.num, feedback)
 
 
         # generate UI elements
@@ -345,7 +346,7 @@ class AdapterForm(AdapterBase):
                     outcome = \
                         outcomes.Outcome(score_id,
                                          question.text,
-                                         existing_score)
+                                         existing_score,)
                     self._possible_outcomes[question_id] = outcome
             except ValueError:
                 pass
@@ -376,13 +377,13 @@ class AdapterForm(AdapterBase):
 
         if outcome is None:
             if question.required:
-                self.required_not_completed.add(question_id)
+                self.required_not_completed.add(question.num)
 
             outcome = outcomes.Outcome('input', question.text)
             self._possible_outcomes[question_id] = outcome
         else:
             # determine if score is valid, and add feedback if missing
-            score_value = self.scores[self.stage_id][question_id]
+            score_value = self.scores[self.stage_id][question.num]
             outcome_value = float(outcome['value'])
             if score_value != outcome_value:
                 raise stage.StageError(f'Score is different in outcomes when '
@@ -420,13 +421,13 @@ class AdapterForm(AdapterBase):
 
         if outcome is None:
             if question.required:
-                self.required_not_completed.add(question_id)
+                self.required_not_completed.add(question.num)
 
             outcome = outcomes.Outcome('input', question.text)
             self._possible_outcomes[question_id] = outcome
         else:
             # determine if score is valid, and add feedback if missing
-            feedbacks_value = self.feedbacks[self.stage_id][question_id]
+            feedbacks_value = self.feedbacks[self.stage_id][question.num]
             outcome_value = outcome['value']
             if feedbacks_value != outcome['value']:
                 raise stage.StageError(f'Feedback is different in outcomes '
@@ -447,7 +448,6 @@ class AdapterForm(AdapterBase):
                             'postchange',
                             self._on_edit_change,
                             question_id)
-        w = urwid.AttrMap(w, 'edit', 'edit selected')
         w = urwid.AttrMap(w, 'edit', 'edit selected')
         return [w]
 
@@ -475,7 +475,9 @@ class AdapterForm(AdapterBase):
 
         question_id  = user_data[0]
         score_id     = user_data[1]
-        required     = self.questions[question_id].required
+        
+        question     = self.questions[question_id]
+        required     = question.required
 
         if state:
             score    = float(self.questions[question_id].scores[score_id])
@@ -484,15 +486,16 @@ class AdapterForm(AdapterBase):
             outcome = self._possible_outcomes[question_id]
             outcome['key']   = score_id
             outcome['value'] = score
+            outcome['all_values'] = question.scale
 
-            self.add_score(question_id, score)
-            self.add_feedback(question_id, feedback)
-            self.set_outcome(question_id, outcome)
+            self.add_score(question.num, score)
+            self.add_feedback(question.num, feedback)
+            self.set_outcome(question.num, outcome)
 
             if question_id in self.required_not_completed:
-                self.required_not_completed.remove(question_id)
+                self.required_not_completed.remove(question.num)
         elif required:
-            self.required_not_completed.add(question_id)
+            self.required_not_completed.add(question.num)
 
         self.status_check()
 
@@ -504,6 +507,8 @@ class AdapterForm(AdapterBase):
         if self._skip_on_edit_change == w:
             self._skip_on_edit_change = None
             return
+        
+        question     = self.questions[question_id]
 
         self._last_selected_widget = w
 
@@ -537,23 +542,23 @@ class AdapterForm(AdapterBase):
 
                 outcome['value'] = value
 
-                self.add_score(question_id, value)
-                self.set_outcome(question_id, outcome)
+                self.add_score(question.num, value)
+                self.set_outcome(question.num, outcome)
             except ValueError:
                 if q.score_min != False:
                     outcome['value'] = value
-                    self.add_score(question_id, q.score_min)
-                    self.set_outcome(question_id, outcome)
+                    self.add_score(question.num, q.score_min)
+                    self.set_outcome(question.num, outcome)
                 else:
                     outcome['value'] = 0.0
-                    self.add_score(question_id, 0.0)
-                    self.set_outcome(question_id, outcome)
+                    self.add_score(question.num, 0.0)
+                    self.set_outcome(question.num, outcome)
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''
-            self.add_feedback(question_id, value)
+            self.add_feedback(question.num, value)
 
             outcome['value'] = value
-            self.set_outcome(question_id, outcome)
+            self.set_outcome(question.num, outcome)
 
 
 
@@ -574,16 +579,22 @@ class AdapterWeighting(AdapterBase):
 
         self._last_selected_widget = None
         self._skip_on_edit_change = None
+        
+        if len(self.outcomes) == 0:
+            contents = [urwid.Text('This stage has no outcomes on a '
+                                   'submission\'s score.')]
+            super().set(contents)
+            return
 
         # generate output
-        for outcome_id, outcome_key in enumerate(self.outcomes):
-            outcome = self.outcomes[outcome_key]
+        for outcome_id, outcome in self.outcomes.items():
+            outcome = self.outcomes[outcome_id]
 
             # column headings
             try:
                 if outcome['all_values'] != None:
-                    headings = [k.explanation for k
-                                in outcome['all_values'].items()]
+                    headings = [k[0] for k
+                                in outcome['all_values']]
                 else:
                     headings = ['Mark']
                         
@@ -619,10 +630,9 @@ class AdapterWeighting(AdapterBase):
             inputs = []
             
             if outcome['all_values'] != None:
-                pass
-                # inputs += self._generate_multi_outcome(outcome_id,
-                #                                        outcome,
-                #                                        self.performance)
+                inputs += self._generate_multi_outcome(outcome_id,
+                                                       outcome,
+                                                       self.performance)
             else:
                 inputs += self._generate_single_outcome(outcome_id,
                                                         outcome,
@@ -652,45 +662,66 @@ class AdapterWeighting(AdapterBase):
 
         self.window.frame.set_focus_path(focus_path)
 
+    def _generate_multi_outcome(self, outcome_id, outcome, performance):
+        existing_score = None
+
+        # generate UI elements
+        inputs = []
+        
+        for value_index, value in enumerate(outcome.all_values):
+            ws = []
+            w = urwid.Edit('',
+                           str(value[1]),
+                           align = 'center')
+            urwid.connect_signal(w,
+                                'postchange',
+                                self._on_edit_change,
+                                value_index)
+            w = urwid.AttrMap(w, 'edit', 'edit selected')
+            ws.append(w)
+
+            num_scores = performance[outcome_id]
+            num_submissions = num_scores[value[0]]
+            total_submissions = sum(num_scores.values())
+            percent_submissions = num_submissions/total_submissions*100
+        
+            w = urwid.Text(f'{num_submissions}/{total_submissions} '
+                           f'{percent_submissions:.2f}%')
+            w = urwid.Padding(w, 'center', 'pack')
+            w = urwid.AttrMap(w, 'faded')
+            ws.append(w)
+
+            inputs.append(urwid.Pile(ws))
+
+        return inputs
+
     def _generate_single_outcome(self, outcome_id, outcome, performance):
         existing_score = None
         ws = []
 
-        # if outcome is None:
-        #     if question.required:
-        #         self.required_not_completed.add(question_id)
-        #
-        #     outcome = outcomes.Outcome('input', question.text)
-        #     self._possible_outcomes[question_id] = outcome
-        # else:
-        #     # determine if score is valid, and add feedback if missing
-        #     score_value = self.scores[self.stage_id][question_id]
-        #     outcome_value = float(outcome['value'])
-        #     if score_value != outcome_value:
-        #         raise stage.StageError(f'Score is different in outcomes when '
-        #                                f'compared to existing score for '
-        #                                f'question {question.num} in '
-        #                                f'{self.stage_id}. Outcome value is '
-        #                                f'{outcome["value"]} whereas saved'
-        #                                f' score is {score_value}.')
-        #
-        #     if question.score_min > outcome_value:
-        #         outcome['value'] = question.score_min
-        #     elif question.score_max < outcome_value:
-        #         outcome['value'] = question.score_max
-        #
-        #     existing_score = outcome['value']
-        #
-        #     self._possible_outcomes[question_id] = \
-        #         outcomes.Outcome('input', question.text, existing_score)
-
-        num_submissions = self.performance[outcome.key]
-        total_submissions = sum(self.performance.values())
-        percent_submissions = num_submissions/total_submissions*100
+        num_submissions = performance[outcome_id]
+        total_submissions = 0
+        percent_submissions = 0
+        try:
+            for num in performance.values():
+                try:
+                    total_submissions += sum(num.values())
+                except:
+                    total_submissions += num
+            percent_submissions = num_submissions/total_submissions*100
+        except:
+            pass
         
+        # if the value is None, this is an input field without a preset value
+        # therefore scores can be scaled only
+        if outcome.value is None:
+            value = str(1.0)
+        else:
+            value = str(outcome.value)
+
         # generate UI elements
         w = urwid.Edit('',
-                       str(outcome.value),
+                       value,
                        align = 'center')
         urwid.connect_signal(w,
                             'postchange',

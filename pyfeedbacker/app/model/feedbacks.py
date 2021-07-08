@@ -8,6 +8,10 @@ class StagesFeedback(base.StagesData):
     def __init__(self):
         super().__init__(Feedbacks)
 
+    str = property(lambda self:self.__str__(), doc="""
+            Read-only string of the feedback
+            """)
+
     def __str__(self):
         feedback = ''
         for stage_feedback in self.values():
@@ -44,6 +48,10 @@ class Feedbacks(base.Data):
                 feedbacks.append(indiv_feedback)
 
         return feedbacks
+
+    str = property(lambda self:self.__str__(), doc="""
+            Read-only string of the feedback
+            """)
 
     def __str__(self):
         feedback = ''

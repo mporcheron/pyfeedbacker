@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from urwid.widget import EditError
 from .model import outcomes
 from . import config
 
@@ -66,7 +67,7 @@ class StageInfo:
             self.handler = getattr(module, class_name)
 
             if handler == 'HandlerNone':
-                self.state  = Stage.STATE_COMPLETE
+                self.state  = StageInfo.STATE_COMPLETE
             else:
                 self.state  = state
 
@@ -181,13 +182,18 @@ class HandlerBase:
             pass
 
         self.outcomes         = {}
+
         self.calculate_outcomes()
 
         self._dir_temp        = config.ini['app']['dir_temp']
         self._dir_submissions = config.ini['app']['dir_submissions']
 
-    def add_outcome(self, key, explanation, value):
-        self.outcomes[key] = outcomes.Outcome(key, explanation, value)
+    def add_outcome(self, outcome_id, key = None, explanation = None, value = None, all_values = None):
+        self.outcomes[outcome_id] = outcomes.Outcome(
+            key         = key,
+            explanation = explanation,
+            value       = value,
+            all_values  = all_values)
 
     def update_ui(self):
         """
@@ -275,62 +281,40 @@ class HandlerForm(HandlerBase):
                 continue
 
             num = k[8:]
-            required = cfg.getboolean('required' + num, fallback=False)
-
-            question_score_min = 0
-            question_score_max = 0
+            text = cfg.get('question' + num)
 
             type_str = cfg['type' + num]
             if type_str == 'scale':
                 try:
+                    scale = OutputForm.get_scale(self.stage_id, num)
                     scores = cfg['score' + num].split(',')
-                    for i in range(0, len(scores)):
-                        this_score = float(scores[i])
 
-                        if required:
-                            question_score_min = min(question_score_min,
-                                                     this_score)
-                        question_score_max = min(question_score_max, this_score)
+                    all_values = [(scale[x], float(scores[x]))
+                                  for x in range(0, len(scale))]
+
+                    self.add_outcome(
+                        outcome_id  = num,
+                        explanation = text,
+                        all_values  = all_values)
                 except KeyError:
                     pass
 
             elif type_str == 'input_score':
+                score_min = ''
                 try:
-                    score_min = cfg.getfloat('min' + num, None)
-
-                    if required:
-                        question_score_min = min(question_score_min, score_min)
+                    score_min = str(cfg.getfloat('min' + num, None))
                 except KeyError:
                     pass
 
+                score_max = ''
                 try:
-                    score_max = cfg.getfloat('max' + num, None)
-                    question_score_max = min(question_score_max, score_max)
+                    score_max = str(cfg.getfloat('max' + num, None))
                 except KeyError:
                     pass
-
-            score_min = min(score_min, question_score_min)
-            score_max = min(score_max, score_max)
-
-        cfg_score_min = config.ini[f'stage_{self.stage_id}'].getfloat(
-            'score_max', None)
-        cfg_score_max = config.ini[f'stage_{self.stage_id}'].getfloat(
-            'score_max', None)
-
-        if cfg_score_min is not None:
-            score_min = max(score_min, cfg_score_min)
-
-        if cfg_score_max is not None:
-            score_min = min(score_min, cfg_score_max)
-
-        self.add_outcome(
-            'score_min',
-            'The minimum possible score after completing the form',
-            score_min)
-        self.add_outcome(
-            'score_max',
-            'The maximum possible score after completing the form',
-            score_max)
+                    
+                self.add_outcome(
+                    outcome_id  = num,
+                    explanation = f'{text} ({score_min}–{score_max})')
 
 
 
@@ -439,21 +423,7 @@ class OutputForm:
 
             type_str = cfg['type' + num]
             if type_str == 'scale':
-                scale = None
-                try:
-                    scale = json.loads(cfg[cfg['answer' + num]])
-                except KeyError:
-                    try:
-                        scale = json.loads(cfg['answer' + num])
-                    except json.JSONDecodeError as e:
-                        raise StageError('Invalid scale JSON ' +
-                                         'for question ' + num + ': ' +
-                                         str(e))
-                except json.JSONDecodeError as e:
-                    raise StageError('Invalid scale JSON: ' +
-                                     cfg['scale' + num] + ': ' +
-                                     str(e))
-
+                scale = OutputForm.get_scale(stage_id, num)
                 scores = [0.0] * len(scale)
                 try:
                     scores = cfg['score' + num].split(',')
@@ -508,6 +478,25 @@ class OutputForm:
                                        '.')
             self.questions.append(q)
 
+    def get_scale(stage_id, num):
+        try:
+            cfg = config.ini['stage_' + stage_id]
+        except KeyError:
+            raise StageError('No stage config for id: ' + stage_id)
+
+        try:
+            return json.loads(cfg[cfg['answer' + num]])
+        except KeyError:
+            try:
+                return json.loads(cfg['answer' + num])
+            except json.JSONDecodeError as e:
+                raise StageError('Invalid scale JSON ' +
+                                 'for question ' + num + ': ' +
+                                 str(e))
+        except json.JSONDecodeError as e:
+            raise StageError('Invalid scale JSON: ' +
+                             cfg['scale' + num] + ': ' +
+                             str(e))
 
 
     class Question:
@@ -553,12 +542,7 @@ class OutputChecklist:
         return self.progress[item]
 
     def __setitem__(self, item, value):
-        try:
-            self.progress[item] = value
-        except IndexError:
-            for _ in range(i-len(l)+1):
-                self.progress.append(None)
-            self.progress[i] = value
+        self.progress[item] = value
 
     def set_label(self, label, index):
         self.progress[index] = (self.progress[index][0], label)
@@ -577,18 +561,37 @@ class OutputWeighting:
         self.model       = model
         self.stage_id    = stage_id
         self.outcomes    = outcomes
-        self.performance = self._get_outcomes_from_submissions(outcomes)
+        self.performance = self.calculate_performance(outcomes)
 
-    def _get_outcomes_from_submissions(self, outcomes):
+    def calculate_performance(self, outcomes):
         performance = {}
-        
-        for outcome_id in outcomes.keys():
-            performance[outcome_id] = 0
-        
+
+        # pass through all outomes first to ensure even outcomes
+        # where no student got the outcome are still included
+        for outcome_id, outcome in outcomes.items():
+            # key = outcome['key']
+            if outcome['all_values']:
+                performance[outcome_id] = {}
+                for value in outcome['all_values']:
+                    performance[outcome_id][value[0]] = int(0)
+            else:
+                performance[outcome_id] = int(0)
+
+        # pass thorugh all outcomes
         for submission, stages in self.model['outcomes'].items():
             for outcome_id, outcome in stages[self.stage_id].items():
-                if outcome_id not in performance:
-                    performance[outcome_id] = 1
+
+                if outcome['all_values']:
+                    key = int(outcome['key'])
+                    key = list(outcome['all_values'])[key]
+                    try:
+                        performance[outcome_id][key] += 1
+                    except KeyError:
+                        performance[outcome_id][key] = 1    
                 else:
-                    performance[outcome_id] += 1
+                    try:
+                        performance[outcome_id] += 1
+                    except KeyError:
+                        performance[outcome_id] = 1
+
         return performance

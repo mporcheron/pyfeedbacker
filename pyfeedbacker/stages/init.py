@@ -32,13 +32,13 @@ class StageInit(stage.HandlerPython):
             'score_min', None)
         
         self.add_outcome(
-            'nosubmission',
-            'The student did NOT make a submission',
-            score_min)
+            outcome_id  = 'nosubmission',
+            explanation = 'The student did NOT make a submission',
+            value       = score_min)
         self.add_outcome(
-            'submitted',
-            'The student made a submission',
-            self._score_pass)
+            outcome_id   = 'submitted',
+            explanation = 'The student made a submission',
+            value        = self._score_pass)
 
     def run(self):
         """Delete any previous data from the temp directory and reset it"""
@@ -118,6 +118,9 @@ class StageInit(stage.HandlerPython):
             raise stage.StageError('Error copying submission: ' + str(e))
 
     def _copy_framework_to_temp(self):
+        dir_submission = self._dir_submissions + os.sep + self.submission
+        dir_submission = os.path.abspath(dir_submission)
+
         if config.ini['stage_init'].get('framework_directory') != None:
             src_dir = config.ini['stage_init'].get('framework_directory')
             try:

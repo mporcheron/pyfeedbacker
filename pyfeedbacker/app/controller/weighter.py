@@ -70,6 +70,8 @@ class Controller(controller.BaseController):
             return
 
         output = stage.OutputWeighting(self.model, stage_id, instance.outcomes)
+
+        self.view.set_stage_state(stage_id, stage.StageInfo.STATE_COMPLETE)
         self.set_stage_output(self.current_stage[0], output)
 
     #

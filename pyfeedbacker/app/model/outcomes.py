@@ -32,10 +32,21 @@ class Outcomes(base.Data):
 
     def __setitem__(self, outcome_id, outcome):
         outcome_id = str(outcome_id)
-        return super().__setitem__(outcome_id, outcome)
+        if outcome_id in self:
+            new_outcome = self[outcome_id]
+            if outcome['key']:
+                new_outcome['key'] = outcome['key']
+            if outcome['explanation']:
+                new_outcome['explanation'] = outcome['explanation']
+            if outcome['value']:
+                new_outcome['value'] = outcome['value']
+            if outcome['all_values']:
+                new_outcome['all_values'] = outcome['all_values']
+        else:
+            return super().__setitem__(outcome_id, outcome)
 
-    def add(self, key, explanation, score):
-        self[key] = Outcome(key, explanation, score)
+    def add(self, outcome_id, key, explanation, score):
+        self.__setitem__(outcome_id, Outcome(key, explanation, score))
 
     def __dict__(self):
         outcomes = {}
