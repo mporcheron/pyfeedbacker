@@ -38,10 +38,9 @@ class Window:
             ('table header',   '', '', '', '#fff,bold', 'g23'),
             ('table row',      '', '', '', '#fff,bold',  ''),
             ('faded',          '', '', '', 'g52',        ''),
-            ('edit',           'light gray', 'dark blue'),
-            ('edit error',     'white', 'dark red', 'bold'),
-            ('edit selected',  'white', 'dark blue', 'bold'),
-            ('bg',             '', '', '', 'g7',        '#000')]
+            ('edit',           '', '', '', 'white',       'dark blue'),
+            ('edit selected',  '', '', '', '#fff,bold',  'dark blue'),
+            ('bg',             '', '', '', 'g7',         '#000')]
 
         if self.view.app == uu.UrwidView.APP_MARKER:
             self.palette.append(
@@ -94,7 +93,9 @@ class Window:
         self.popup_quit = None
 
         # start the main loop
-        screen = urwid.raw_display.Screen
+        screen = urwid.raw_display.Screen()
+        screen.set_terminal_properties(2**24)
+        screen.register_palette(self.palette)
         self.loop = urwid.MainLoop(self.frame,
                                    palette         = self.palette,
                                    unhandled_input = self._on_keypress,
@@ -204,7 +205,6 @@ class Window:
         if self.visible_stage_id in self._output_adapters:
             adapter = self._output_adapters[self.visible_stage_id]
             if adapter.view_focus is not None:
-                # raise stage.StageError(w.get_focus_path())
                 w.set_focus_path([4] + adapter.view_focus)
 
         w = urwid.Padding(w, left=2, right=2, min_width=20)
