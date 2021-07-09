@@ -190,6 +190,7 @@ class HandlerBase:
 
     def add_outcome(self, outcome_id, key = None, explanation = None, value = None, all_values = None):
         self.outcomes[outcome_id] = outcomes.Outcome(
+            outcome_id  = outcome_id,
             key         = key,
             explanation = explanation,
             value       = value,
@@ -552,7 +553,7 @@ class OutputChecklist:
 
 
 
-class OutputWeighting:
+class OutputMarker:
     def __init__(self, model, stage_id, outcomes):
         """
         Weighting output for a stage, based on its registered outcomes

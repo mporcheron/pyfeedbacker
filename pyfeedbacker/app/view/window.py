@@ -259,11 +259,11 @@ class Window:
                                      self.controller,
                                      self.model,
                                      self)
-        elif isinstance(output, stage.OutputWeighting):
-            sa = ua.AdapterWeighting(stage_id,
-                                     self.controller,
-                                     self.model,
-                                     self)
+        elif isinstance(output, stage.OutputMarker):
+            sa = ua.AdapterMarker(stage_id,
+                                  self.controller,
+                                  self.model,
+                                  self)
         else:
             raise AttributeError(f'No adapter for output for {stage_id}: ' +
                                  str(output))

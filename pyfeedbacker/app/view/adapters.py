@@ -2,7 +2,7 @@
 
 from .. import config, stage
 from ..model import outcomes
-from ..controller import marker, weighter
+from ..controller import scorer, marker
 from . import widgets as uw
 
 import urwid
@@ -30,15 +30,15 @@ class AdapterNone:
         self.view_focus   = None
 
         # if this is the marker, set some more variables
+        self.scorer_app = isinstance(controller, scorer.Controller)
         self.marker_app = isinstance(controller, marker.Controller)
-        self.weighter_app = isinstance(controller, weighter.Controller)
 
-        if self.marker_app:
+        if self.scorer_app:
             self.scores    = model['scores'][controller.submission]
             self.feedbacks = model['feedbacks'][controller.submission]
             self.outcomes  = model['outcomes'][controller.submission]
-        elif self.weighter_app:
-            self.weights   = model['weights']
+        elif self.marker_app:
+            self.marks   = model['marks']
 
             # initial score
             score_init = config.ini[f'stage_{stage_id}'].getfloat(
@@ -62,7 +62,7 @@ class AdapterNone:
 
         Only works in marker app.
         """
-        if self.marker_app:
+        if self.scorer_app:
             self.controller.add_score(self.stage_id,
                                       score_id,
                                       score)
@@ -73,7 +73,7 @@ class AdapterNone:
 
         Only works in marker app.
         """
-        if self.marker_app:
+        if self.scorer_app:
             self.controller.add_feedback(self.stage_id,
                                          feedback_id,
                                          feedback)
@@ -87,27 +87,27 @@ class AdapterNone:
         """
         Add to the submission's outcome (calls through to the model).
 
-        Only works in marker app.
+        Only works in scorer app.
         """
         if outcome is None:
             outcome = outcomes.Outcome(key, explanation, value)
 
-        if self.marker_app:
+        if self.scorer_app:
             self.controller.set_outcome(self.stage_id,
                                         outcome_id,
                                         outcome)
 
-    def set_weight(self, outcome_id, value_id, value):
+    def set_mark(self, outcome_id, mark_id, mark):
         """
-        Weights for the conversion from scores to marks (calls through to the model).
+        Marks for the outcomes (for each outcome, not tied to a submission yet).
 
-        Only works in weighter app.
+        Only works in marker app.
         """
-        if self.weighter_app:
-            self.controller.set_weight(self.stage_id,
-                                        outcome_id,
-                                        value_id,
-                                        value)
+        if self.marker_app:
+            self.controller.set_mark(self.stage_id,
+                                     outcome_id,
+                                     mark_id,
+                                     mark)
 
 
 
@@ -574,7 +574,7 @@ class AdapterForm(AdapterBase):
 
 
 
-class AdapterWeighting(AdapterBase):
+class AdapterMarker(AdapterBase):
     def set(self, output):
         """
         Create an interactive form to be completed by the user. Similar to 
@@ -682,26 +682,26 @@ class AdapterWeighting(AdapterBase):
         # generate UI elements
         inputs = []
         
-        for weight_id, value in enumerate(outcome.all_values):
+        for mark_id, value in enumerate(outcome.all_values):
             the_value = value[1]
             # replace value if in model
-            model_value = self.weights[self.stage_id][outcome_id]\
-                    [str(weight_id)]
+            model_value = self.marks[self.stage_id][outcome_id]\
+                    [str(mark_id)]
             if model_value is not None:
-                the_value = model_value
+                mark = model_value
             else:
-                self.set_weight(outcome_id,
-                                weight_id,
-                                float(the_value))
+                self.set_mark(outcome_id,
+                              mark_id,
+                              float(mark))
             
             ws = []
             w = urwid.Edit('',
-                           str(the_value),
+                           str(mark),
                            align = 'center')
             urwid.connect_signal(w,
                                 'postchange',
                                 self._on_edit_change,
-                                (outcome_id, weight_id))
+                                (outcome_id, mark_id))
             w = urwid.AttrMap(w, 'edit', 'edit selected')
             ws.append(w)
 
@@ -739,22 +739,22 @@ class AdapterWeighting(AdapterBase):
         # if the value is None, this is an input field without a preset value
         # therefore scores can be scaled only
         if outcome.value is None:
-            value = str(1.0)
+            mark = str(1.0)
         else:
-            value = str(outcome.value)
+            mark = str(outcome.value)
 
         # replace value if in model
-        model_value = self.weights[self.stage_id][outcome_id]
+        model_value = self.marks[self.stage_id][outcome_id]
         if model_value is not None:
-            value = str(model_value)
+            mark = str(model_value)
         else:
-            self.set_weight(outcome_id,
-                            None,
-                            float(value))
+            self.set_mark(outcome_id,
+                          None,
+                          float(mark))
 
         # generate UI elements
         w = urwid.Edit('',
-                       value,
+                       mark,
                        align = 'center')
         urwid.connect_signal(w,
                             'postchange',
@@ -786,12 +786,12 @@ class AdapterWeighting(AdapterBase):
 
         outcome_id = outcome_ids[0]
 
-        weight_id = None
+        mark_id = None
         if outcome_ids[1] is not None:
-            weight_id = outcome_ids[1]
+            mark_id = outcome_ids[1]
 
         try:
             value = float(value) if value is not None else 0.0
-            self.set_weight(outcome_id, weight_id, value)
+            self.set_mark(outcome_id, mark_id, value)
         except ValueError:
-            self.set_weight(outcome_id, weight_id, 0.0)
+            self.set_mark(outcome_id, mark_id, 0.0)

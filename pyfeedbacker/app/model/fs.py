@@ -119,16 +119,17 @@ class FileSystemModel(model.BaseModel):
         except FileNotFoundError:
             pass
 
-        # load weights
+        # load outcomes marks
         try:
-            file_weights = config.ini['model_file']['file_weights']
-            with open(file_weights, 'r') as json_file:
+            file_outcomes_marks = \
+                    config.ini['model_file']['file_outcomes_marks']
+            with open(file_outcomes_marks, 'r') as json_file:
                 for stage_id, stages in json.load(json_file).items():
-                    for outcome_id, weight in stages.items():
-                        if weight is None:
+                    for outcome_id, mark in stages.items():
+                        if mark is None:
                             continue
 
-                        self['weights'][stage_id][outcome_id] = weight
+                        self['marks'][stage_id][outcome_id] = mark
         except json.decoder.JSONDecodeError:
             pass
         except FileNotFoundError:
@@ -139,11 +140,9 @@ class FileSystemModel(model.BaseModel):
                (' marks' if marks else ' scores')
 
     def _get_csv_header(self, marks):
-        title_header_str = self._get_csv_title(marks)
-
         # calculate mapping
         mapping = OrderedDict()
-        for submission, stages in self['scores'].items():
+        for submission, stages in self['outcomes'].items():
             for stage_id, stage_scores in stages.items():
                 stage_id = str(stage_id)
 
@@ -172,19 +171,19 @@ class FileSystemModel(model.BaseModel):
 
         return [title_header_str, stage_header_str, score_header_str, mapping]
 
-    def save(self):
-        self._save_scores()
-        self._save_feedbacks()
+    def save(self, force_finalise=False):
+        self._save_scores(force_finalise=force_finalise)
+        self._save_feedbacks(force_finalise=force_finalise)
         self._save_outcomes()
-        self._save_weights()
+        self._save_outcomes_marks()
 
-    def _save_scores(self, only_save_marks=False):
+    def _save_scores(self, force_finalise=False, save_marks=False):
         file_name = config.ini['model_file']['file_scores']
-        if only_save_marks:
+        if save_marks:
             file_name = config.ini['model_file']['file_marks']
 
         (title_header_str, stage_header_str, score_header_str, mapping) = \
-            self._get_csv_header(only_save_marks)
+            self._get_csv_header(save_marks)
 
         with open(file_name, 'w') as f:
             f.write(title_header_str + '\n')
@@ -195,23 +194,34 @@ class FileSystemModel(model.BaseModel):
                 scores = [str(submission)]
                 for (stage_id, score_id) in mapping:
                     score = stages[stage_id][score_id]
-                    scores.append(str(float(score)))
+                    score = float(score)
+
+                    try:
+                        mark = self.weights[stage_id][score_id]
+                    except:
+                        mark = score
+
+                    scores.append(str(float(mark)))
 
                 f.write(','.join(scores) + ',' + str(stages.sum))
                 f.write('\n')
 
             f.write('\n')
 
-        if not only_save_marks:
-            if config.ini['assessment'].getboolean('scores_are_marks', False):
-                self._save_scores(True)
+        if not save_marks:
+            if config.ini['assessment'].getboolean('scores_are_marks', False) \
+                    or force_finalise:
+                self._save_scores(False, True)
+        elif force_finalise:
+            self._save_scores(False, True)
 
-    def _save_feedbacks(self):
+    def _save_feedbacks(self, force_finalise=False):
         file_name = config.ini['model_file']['file_feedbacks']
         with open(file_name, 'w') as json_file:
             json_file.write(json.dumps(self['feedbacks']))
 
-        if config.ini['assessment'].getboolean('scores_are_marks', False):
+        if config.ini['assessment'].getboolean('scores_are_marks', False) \
+                or force_finalise:
             for submission, stages in self['feedbacks'].items():
                 path = config.ini['model_file']['file_final_feedback'].replace(
                     '##submission##', submission)
@@ -243,7 +253,7 @@ class FileSystemModel(model.BaseModel):
         with open(file_name, 'w') as json_file:
             json_file.write(json.dumps(self['outcomes'].dict))
 
-    def _save_weights(self):
-        file_name = config.ini['model_file']['file_weights']
+    def _save_outcomes_marks(self):
+        file_name = config.ini['model_file']['file_outcomes_marks']
         with open(file_name, 'w') as json_file:
-            json_file.write(json.dumps(self['weights'].dict))
+            json_file.write(json.dumps(self['marks'].dict))

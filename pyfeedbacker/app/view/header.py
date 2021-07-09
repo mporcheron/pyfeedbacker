@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .. import config, stage
-from ..controller import marker
+from ..controller import scorer
 
 import urwid
 
@@ -22,7 +22,7 @@ class HeaderWidget(urwid.WidgetWrap):
         header_text = config.ini['app']['name']
 
         self._show_marks = False
-        if isinstance(controller, marker.Controller):
+        if isinstance(controller, scorer.Controller):
             self._show_marks = \
                 config.ini['assessment'].getboolean('scores_are_marks', False)
             header_text += f' ({controller.submission})'

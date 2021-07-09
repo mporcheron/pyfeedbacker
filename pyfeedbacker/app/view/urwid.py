@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from ..view import window
-from ..controller import marker, weighter
+from ..controller import scorer, marker
 
 
 
@@ -17,9 +17,9 @@ class UrwidView:
         self.controller = controller
 
         self.app        = UrwidView.APP_MARKER
-        if isinstance(controller, marker.Controller):
+        if isinstance(controller, scorer.Controller):
             pass
-        elif isinstance(controller, weighter.Controller):
+        elif isinstance(controller, marker.Controller):
             self.app    = UrwidView.APP_WEIGHTER
         else:
             raise AttributeError('Unknown app controller')

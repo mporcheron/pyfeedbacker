@@ -4,21 +4,21 @@ from . import base
 
 
 
-class StagesWeights(base.StagesData):
+class StagesMarks(base.StagesData):
     def __init__(self):
-        super().__init__(Weights)
+        super().__init__(Marks)
 
     def __dict__(self):
-        weights = {}
+        marks = {}
 
         for key, value in self.items():
-            weights[key] = value
+            marks[key] = value
 
-        return weights
+        return marks
 
 
 
-class Weights(base.Data):
+class Marks(base.Data):
     def __init__(self, outcome_id):
         super().__init__(outcome_id, None)
     
@@ -29,14 +29,14 @@ class Weights(base.Data):
         outcome_id = str(outcome_id)
         return super().__getitem__(outcome_id)
 
-    def __setitem__(self, outcome_id, weight):
+    def __setitem__(self, outcome_id, mark):
         outcome_id = str(outcome_id)
-        return super().__setitem__(outcome_id, weight)
+        return super().__setitem__(outcome_id, mark)
 
     def __dict__(self):
-        weights = {}
+        marks = {}
 
         for key, value in self.items():
-            weights[key] = value
+            marks[key] = value
 
-        return weights
+        return marks

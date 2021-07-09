@@ -34,6 +34,8 @@ class Outcomes(base.Data):
         outcome_id = str(outcome_id)
         if outcome_id in self:
             new_outcome = self[outcome_id]
+            if outcome['outcome_id']:
+                new_outcome['outcome_id'] = outcome['outcome_id']
             if outcome['key']:
                 new_outcome['key'] = outcome['key']
             if outcome['explanation']:
@@ -43,6 +45,7 @@ class Outcomes(base.Data):
             if outcome['all_values']:
                 new_outcome['all_values'] = outcome['all_values']
         else:
+            outcome['outcome_id'] = outcome_id
             return super().__setitem__(outcome_id, outcome)
 
     def add(self, outcome_id, key, explanation, score):
@@ -60,9 +63,15 @@ class Outcomes(base.Data):
 
 
 class Outcome(dict):
-    def __init__(self, key=None, explanation=None, value=None, all_values=None):
+    def __init__(self,
+                 outcome_id=None,
+                 key=None,
+                 explanation=None,
+                 value=None,
+                 all_values=None):
         super().__init__()
 
+        self['outcome_id']  = outcome_id
         self['key']         = key
         self['explanation'] = explanation
         self['value']       = value

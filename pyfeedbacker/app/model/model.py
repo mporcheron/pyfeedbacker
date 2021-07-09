@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from .. import config
-from . import scores, feedbacks, outcomes, weights
+from . import scores, feedbacks, outcomes, marks
 
 from collections import OrderedDict
 
@@ -18,7 +18,7 @@ class BaseModel(object):
         self.scores    = AllSubmissions(scores.StagesScores)
         self.feedbacks = AllSubmissions(feedbacks.StagesFeedback)
         self.outcomes  = AllSubmissions(outcomes.StagesOutcomes)
-        self.weights   = AllSubmissions(weights.StagesWeights)
+        self.marks     = AllSubmissions(marks.StagesMarks)
 
         self._set_init_data()
 
