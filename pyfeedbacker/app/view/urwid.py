@@ -6,7 +6,7 @@ from ..controller import scorer, marker
 
 
 class UrwidView:
-    APP_MARKER, APP_WEIGHTER = range(0,2)
+    APP_SCORER, APP_MARKER = range(0,2)
     ALERT_HALT, ALERT_OK, ALERT_YESNO = range(0,3)
 
     def __init__(self, controller, model):
@@ -16,11 +16,11 @@ class UrwidView:
         """
         self.controller = controller
 
-        self.app        = UrwidView.APP_MARKER
+        self.app        = UrwidView.APP_SCORER
         if isinstance(controller, scorer.Controller):
             pass
         elif isinstance(controller, marker.Controller):
-            self.app    = UrwidView.APP_WEIGHTER
+            self.app    = UrwidView.APP_MARKER
         else:
             raise AttributeError('Unknown app controller')
 

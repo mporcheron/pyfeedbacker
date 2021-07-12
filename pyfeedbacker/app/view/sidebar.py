@@ -22,7 +22,7 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         self._stages_buttons = {}
         self._stages         = []
         
-        self._show_state = self.view.app == uu.UrwidView.APP_MARKER
+        self._show_state = self.view.app == uu.UrwidView.APP_SCORER
 
         contents = [urwid.Divider(),
                     urwid.AttrWrap(urwid.Text(u'Stage'),

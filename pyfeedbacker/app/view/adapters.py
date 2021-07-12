@@ -18,7 +18,7 @@ class AdapterNone:
         Adapters convert output, stored in Output* classes in app.stage to
         urwid widgets.
         """
-        self.output    = [urwid.Text('This stage has no output.')]
+        self._output    = [urwid.Text('This stage has no output.')]
 
         self.stage_id   = stage_id
         self.controller = controller
@@ -52,7 +52,9 @@ class AdapterNone:
         Update the output, forcing the adapter to re-adapt it to urwid
         components.
         """
-        self.output = [urwid.Text('This stage has no output adapter.')]
+        self._output = [urwid.Text('This stage has no output adapter.')]
+
+    output = property(lambda self: self._output)
 
     def set_feedback(self, feedback_id, feedback):
         """
@@ -106,9 +108,9 @@ class AdapterBase(AdapterNone):
         into an urwid Pile.
         """
         if isinstance(output, list):
-            self.output = output
+            self._output = output
         else:
-            self.output = [output]
+            self._output = [output]
 
 
 
@@ -492,7 +494,7 @@ class AdapterForm(AdapterBase):
             self.set_feedback(question.num, feedback)
             self.set_outcome(question.num, outcome)
 
-            if question_id in self.required_not_completed:
+            if question.num in self.required_not_completed:
                 self.required_not_completed.remove(question.num)
         elif required:
             self.required_not_completed.add(question.num)
@@ -550,6 +552,11 @@ class AdapterForm(AdapterBase):
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''
             self.set_feedback(q.num, value)
+
+        if q.num in self.required_not_completed:
+            self.required_not_completed.remove(q.num)
+
+        self.status_check()
 
 
 
@@ -777,3 +784,15 @@ class AdapterMarker(AdapterBase):
             self.set_mark(outcome_id, mark_id, value)
         except ValueError:
             self.set_mark(outcome_id, mark_id, 0.0)
+
+
+
+class AdapterOverview(AdapterBase):
+    def __init__(self):
+        """
+        An adapter that generates a specific output that shows the current
+        performance of all the submissions.
+
+        This adapter does not take any stage output!
+        """
+        self._output = [urwid.Text('No information has been calculated yet.')]

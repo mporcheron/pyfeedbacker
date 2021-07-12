@@ -38,14 +38,14 @@ class Window:
             ('table header',   '', '', '', '#fff,bold', 'g23'),
             ('table row',      '', '', '', '#fff,bold',  ''),
             ('faded',          '', '', '', 'g52',        ''),
-            ('edit',           '', '', '', 'white',       'dark blue'),
+            ('edit',           '', '', '', 'white',      'dark blue'),
             ('edit selected',  '', '', '', '#fff,bold',  'dark blue'),
             ('bg',             '', '', '', 'g7',         '#000')]
 
-        if self.view.app == uu.UrwidView.APP_MARKER:
+        if self.view.app == uu.UrwidView.APP_SCORER:
             self.palette.append(
                 ('header',         '', '', '', 'bold',      '#0af'))
-        elif self.view.app == uu.UrwidView.APP_WEIGHTER:
+        elif self.view.app == uu.UrwidView.APP_MARKER:
             self.palette.append(
                 ('header',         '', '', '', 'bold',      '#d06'))
 
@@ -176,17 +176,22 @@ class Window:
             for pos in range(1, self._main.positions()[1]+1):
                 self._main.pop(pos)
 
-        output = [urwid.Text(('title', self.visible_stage_label)),
-                    urwid.Divider()]
+        output = []
 
+        # stage title
+        title = urwid.Text(('title', self.visible_stage_label))
+        output += [title, urwid.Divider()]
+
+        # stage contents
         if self.visible_stage_id in self._output_adapters:
             adapter = self._output_adapters[self.visible_stage_id]
             output += adapter.output
         else:
-            output.append(urwid.Text('This stage has not generated an output.'))
+            output += [urwid.Text('This stage has not generated an output.')]
 
-        output.append(urwid.Divider())
+        output += [urwid.Divider()]
 
+        #  continue button
         if self.visible_stage_id in self._show_continue_button:
             continue_text = 'Continue'
             if self.visible_stage_id == self._last_stage_id:
@@ -198,14 +203,17 @@ class Window:
             b = urwid.AttrWrap(b, 'selectable', 'focus')
             b = urwid.WidgetWrap(b)
             bs = urwid.GridFlow([b], continue_text_len, 3, 2, 'center')
-            output.append(bs)
+            output += [bs]
 
         w = uw.JumpablePile(output)
 
         if self.visible_stage_id in self._output_adapters:
             adapter = self._output_adapters[self.visible_stage_id]
             if adapter.view_focus is not None:
-                w.set_focus_path([4] + adapter.view_focus)
+                try:
+                    w.set_focus_path([4] + adapter.view_focus)
+                except IndexError:
+                    pass
 
         w = urwid.Padding(w, left=2, right=2, min_width=20)
 
