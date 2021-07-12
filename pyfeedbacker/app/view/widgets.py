@@ -71,29 +71,13 @@ class JumpablePile(urwid.Pile):
         """
         A jumpable Pile allows you to press alt/option/meta + up/down arrow
         to jump up/down the pile to focus.
-
-        Also loops at the top and bottom.
         """
-        first_focus_position = None
-        last_focus_position = None
-        for wi, w in enumerate(self.contents):
-            if w[0].selectable():
-                first_focus_position = wi
-                break
+        if key == 'meta down':
+            return super().keypress(size, 'page down')
+        elif key == 'meta up':
+            return super().keypress(size, 'page up')
 
-        for wi, w in enumerate(reversed(self.contents)):
-            if w[0].selectable():
-                last_focus_position = len(self.contents) - wi - 1
-                break
-
-        if (self.focus_position == first_focus_position and key == 'up') \
-                or key == 'meta down':
-            self.focus_position = last_focus_position
-        elif (self.focus_position == last_focus_position and key == 'down') \
-                or key == 'meta up':
-            self.focus_position = first_focus_position
-        else:
-            return super().keypress(size, key)
+        return super().keypress(size, key)
 
 
 
