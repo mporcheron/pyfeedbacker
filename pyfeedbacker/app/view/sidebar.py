@@ -19,8 +19,10 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         self.view       = view
         self.window     = window
 
-        self._stages_buttons = {}
-        self._stages         = []
+        self._stages_buttons  = {}
+        self._stages          = []
+        self._stage_id_to_pos = {}
+        self._active_pos      = None
         
         self._show_state = self.view.app == uu.UrwidView.APP_SCORER
 
@@ -54,8 +56,9 @@ class SidebarStagesWidget(urwid.WidgetWrap):
                                             self._show_state)
         self._stages_buttons[stage_info.stage_id] = w
         self._stages.append(stage_info)
+        self._stage_id_to_pos[stage_info.stage_id] = len(self._stages)
 
-        w = urwid.AttrMap(w, 'stage', 'stage active')
+        w = urwid.AttrMap(w, 'stage', 'stage focus')
         self._listwalker.append(w)
 
     def _on_select_stage(self, widget, stage):
@@ -79,12 +82,20 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         Set which stage is to be highlighted as active. Throws an AttributeError
         if the stage_id is invalid.
         """
-        for stage_pos, stage_info in enumerate(self._stages):
-            if stage_info.stage_id == stage_id:
-                self._widget.set_focus_path([stage_pos+1])
-                return
+        try:
+            w = self._listwalker[self._active_pos]
+            w.set_attr_map({None: 'stage'})
+        except:
+            pass
 
-        raise AttributeError(f'No stage matching stage id f{stage_id}')
+        try:
+            stage_pos = self._stage_id_to_pos[stage_id]
+            self._active_pos = stage_pos
+
+            w = self._listwalker[stage_pos]
+            w.set_attr_map({None: 'stage active'})
+        except KeyError:
+            raise AttributeError(f'No stage matching stage id f{stage_id}')
 
     def set_stage_state(self, stage_id, state):
         """

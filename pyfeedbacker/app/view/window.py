@@ -3,6 +3,7 @@
 from .. import config, stage
 from . import adapters as ua
 from . import header as uh
+from . import footer as uf
 from . import sidebar as us
 from . import popup as up
 from . import urwid as uu
@@ -31,10 +32,11 @@ class Window:
             ('selectable',     '', '', '', 'black',     'g58'),
             ('focus',          '', '', '', 'black',     '#ff0'),
             ('highlighted',    '', '', '', 'black',     '#ff0'),
-            ('sidebar',        '', '', '', 'black',     'g58'),
-            ('sidebar title',  '', '', '', 'bold,#000', 'g58'),
-            ('stage',          '', '', '', 'black',     'g58'),
-            ('stage hover',    '', '', '', '#fff',      '#000'),
+            ('sidebar',        '', '', '', '#fff',      'g11'),
+            ('sidebar title',  '', '', '', '#fff,bold', 'g11'),
+            ('stage',          '', '', '', 'white',     'g11'),
+            ('stage active',   '', '', '', '#fff',      'black'),
+            ('stage focus',    '', '', '', '#000',       '#ff0'),
             ('table header',   '', '', '', '#fff,bold', 'g23'),
             ('table row',      '', '', '', '#fff,bold',  ''),
             ('faded',          '', '', '', 'g52',        ''),
@@ -42,14 +44,18 @@ class Window:
             ('edit selected',  '', '', '', '#fff,bold',  'dark blue'),
             ('bg',             '', '', '', 'g7',         '#000')]
 
+        self.header  = uh.HeaderWidget(controller, model, self)
+
         if self.view.app == uu.UrwidView.APP_SCORER:
             self.palette.append(
                 ('header',         '', '', '', 'bold',      '#0af'))
+            self.footer = None
         elif self.view.app == uu.UrwidView.APP_MARKER:
             self.palette.append(
                 ('header',         '', '', '', 'bold',      '#d06'))
+            self.footer = uf.FooterWidget(controller, model, self)
 
-        self.header  = uh.HeaderWidget(controller, model, self)
+
 
         if sidebar is Window.SIDEBAR_STAGES:
             self.sidebar = us.SidebarStagesWidget(controller, model, view, self)
@@ -89,7 +95,9 @@ class Window:
         l = [urwid.Divider(), body]
         w = urwid.ListBox(urwid.SimpleListWalker(l))
 
-        self.frame = urwid.Frame(header=self.header, body=body)
+        self.frame = urwid.Frame(header = self.header,
+                                 body   = body,
+                                 footer = self.footer)
         self.popup_quit = None
 
         # start the main loop
