@@ -44,7 +44,7 @@ class Window:
 
         if self.view.app == uu.UrwidView.APP_MARKER:
             self.palette.append(
-                ('header',         '', '', '', 'bold',      '#00f'))
+                ('header',         '', '', '', 'bold',      '#0af'))
         elif self.view.app == uu.UrwidView.APP_WEIGHTER:
             self.palette.append(
                 ('header',         '', '', '', 'bold',      '#d06'))
