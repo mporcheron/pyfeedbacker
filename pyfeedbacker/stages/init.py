@@ -36,9 +36,9 @@ class StageInit(stage.HandlerPython):
             explanation = 'The student did NOT make a submission',
             value       = score_min)
         self.add_outcome(
-            outcome_id   = 'submitted',
+            outcome_id  = 'submitted',
             explanation = 'The student made a submission',
-            value        = self._score_pass)
+            value       = self._score_pass)
 
     def run(self):
         """Delete any previous data from the temp directory and reset it"""
@@ -56,14 +56,12 @@ class StageInit(stage.HandlerPython):
             self._copy_framework_to_temp()
         except stage.StageError as se:
             result = stage.StageResult(stage.StageResult.RESULT_CRITICAL)
-            result.add_score(self.outcomes['nosubmission'].value)
             result.set_outcome(self.outcomes['nosubmission'])
             result.set_output(self.output)
             result.set_error(str(se))
             return result
 
         result = stage.StageResult(stage.StageResult.RESULT_PASS)
-        result.add_score(self.outcomes['submitted'].value)
         result.set_outcome(self.outcomes['submitted'])
         result.set_output(self.output)
         return result

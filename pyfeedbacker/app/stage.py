@@ -40,8 +40,6 @@ class StageInfo:
 
         Keyword arguments:
         selectable    -- Whether this stage can be selected for execution
-        score_min     -- Minimum score for this stage as a float or None
-        score_max     -- Maximum score for this stage as a float or None
         feedback_pre  -- Prepend this text to the feedback or None
         feedback_post -- Append this text to the feedback or None
         halt_on_error -- Halt all marking if this stage fails
@@ -89,8 +87,6 @@ class StageInfo:
             if self.debug:
                 raise e
 
-        self.score_min      = score_min
-        self.score_max      = score_max
         self.feedback_pre   = feedback_pre
         self.feedback_post  = feedback_post
         self.halt_on_error  = halt_on_error
@@ -115,18 +111,10 @@ class StageResult:
         return this because the form is always mutable.
         """
         self.result       = result
-        self.score        = 0
         self.feedback     = ''
         self.outcome      = None
         self.error        = ''
         self.output       = None
-
-    def add_score(self, score):
-        """
-        Add to the score for this stage. Any min/max limits on score are
-        applied in the model and not here.
-        """
-        self.score       += score
 
     def add_feedback(self, feedback):
         """

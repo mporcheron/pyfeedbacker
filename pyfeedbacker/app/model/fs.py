@@ -22,69 +22,6 @@ class FileSystemModel(model.BaseModel):
         self._load_raw_data()
 
     def _load_raw_data(self):
-        # load scores
-        file_scores  = config.ini['model_file']['file_scores']
-
-        try:
-            with open(file_scores, 'r') as f:
-                lines = list(open(file_scores, 'r'))
-                if len(lines) < 3:
-                    raise ValueError(f'The scores file {file_scores} seems  ' +
-                                     'to have other data in it.')
-
-                if not lines[0].startswith(self._get_csv_title(False)):
-                    raise ValueError(f'The scores file {file_scores} seems ' +
-                                     'to have a different header name?')
-
-                lines.pop(0)
-
-                # read stage IDs and model IDs
-                current_stage_id = None
-                rows = list(csv.reader([lines[0], lines[1]]))
-
-                # ignore submission column
-                rows[0].pop(0)
-                rows[1].pop(0)
-
-                col_stage_id = ['']
-                last_stage_id = None
-                for cell in rows[0]:
-                    if len(cell) > 0:
-                        col_stage_id.append(cell)
-                        last_stage_id = cell
-                    else:
-                        col_stage_id.append(last_stage_id)
-
-                col_score_id = ['']
-                for pos, cell in enumerate(rows[1]):
-                    col_score_id.append(cell)
-
-                lines.pop(0)
-                lines.pop(0)
-
-                for row in csv.reader(lines):
-                    if len(row) == 0:
-                        continue
-
-                    cells = list(row)
-                    submission = cells[0]
-                    cells.pop(0)
-
-                    for pos, cell in enumerate(cells):
-                        stage_id = col_stage_id[pos+1]
-                        score_id = col_score_id[pos+1]
-
-                        if stage_id == 'sum' and score_id == 'sum':
-                            continue
-
-                        if len(stage_id) == 0:
-                            continue
-
-                        self['scores'][submission][stage_id][score_id] = \
-                            float(cell)
-        except FileNotFoundError:
-            pass
-
         # load feedbacks
         try:
             file_feedbacks = config.ini['model_file']['file_feedbacks']
@@ -190,20 +127,51 @@ class FileSystemModel(model.BaseModel):
             f.write(stage_header_str + '\n')
             f.write(score_header_str + '\n')
 
-            for submission, stages in self['scores'].items():
+            for submission, stages in self.outcomes.items():
                 scores = [str(submission)]
+                sum = 0
+ 
                 for (stage_id, score_id) in mapping:
-                    score = stages[stage_id][score_id]
-                    score = float(score)
-
+                    score = 0.0
                     try:
-                        mark = self.weights[stage_id][score_id]
+                        score = float(stages[stage_id][score_id]['value'])
                     except:
-                        mark = score
+                        pass
 
-                    scores.append(str(float(mark)))
+                    if save_marks:
+                        try:
+                            # TODO input scores don't are a factor, not replacement
+                            group = self.marks[stage_id][score_id]
+                            
+                            if isinstance(group, dict):
+                                if len(group) == 0:
+                                    raise
 
-                f.write(','.join(scores) + ',' + str(stages.sum))
+                            try:
+                                key = stages[stage_id][score_id]['key']
+                                score = group[str(key)]
+                            except:
+                                # if there is no key, but a value then
+                                # it is a input field, in which case
+                                # we multiple the mark value by the
+                                # score value
+                                value = stages[stage_id][score_id]['value']
+                                if value is None:
+                                    score = group
+                                else:
+                                    score = value * group
+                        except:
+                            try:
+                                value = stages[stage_id][score_id]['value']
+                                if value is not None:
+                                    score *= value
+                            except:
+                                pass
+
+                    sum += score
+                    scores.append(str(score))
+
+                f.write(','.join(scores) + ',' + str(sum))
                 f.write('\n')
 
             f.write('\n')
@@ -228,11 +196,11 @@ class FileSystemModel(model.BaseModel):
 
                 with open(path, 'w') as f:
                     data = {}
-                    data['score'] = float(self['scores'][submission].sum)
+                    data['score'] = float(self.outcomes[submission].sum)
                     data['score_max'] = config.ini['assessment'].getfloat(
                         'score_max', None)
 
-                    scores = self['scores'][submission]
+                    scores = self.outcomes[submission]
                     for stage_id, stage_scores in scores.items():
                         data[f'stage_{stage_id}_score'] = stage_scores.sum
                         data[f'stage_{stage_id}_score_max'] = \

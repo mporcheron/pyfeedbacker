@@ -68,7 +68,7 @@ class HeaderWidget(urwid.WidgetWrap):
         if not self._show_marks:
             return
 
-        self.marks_str = score
+        self.marks_str = str(score)
         self.update()
 
     def get_marks_str(self):

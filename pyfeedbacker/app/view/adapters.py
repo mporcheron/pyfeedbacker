@@ -34,7 +34,6 @@ class AdapterNone:
         self.marker_app = isinstance(controller, marker.Controller)
 
         if self.scorer_app:
-            self.scores    = model['scores'][controller.submission]
             self.feedbacks = model['feedbacks'][controller.submission]
             self.outcomes  = model['outcomes'][controller.submission]
         elif self.marker_app:
@@ -44,7 +43,6 @@ class AdapterNone:
             score_init = config.ini[f'stage_{stage_id}'].getfloat(
                 'score_init', None)
             if score_init:
-                self.add_score('__init', score_init)
                 self.set_outcome('__init',
                                  explanation = 'Initial score',
                                  score       = score_init)
@@ -56,25 +54,14 @@ class AdapterNone:
         """
         self.output = [urwid.Text('This stage has no output adapter.')]
 
-    def add_score(self, score_id, score):
-        """
-        Add to the submission's score (calls through to the model).
-
-        Only works in marker app.
-        """
-        if self.scorer_app:
-            self.controller.add_score(self.stage_id,
-                                      score_id,
-                                      score)
-
-    def add_feedback(self, feedback_id, feedback):
+    def set_feedback(self, feedback_id, feedback):
         """
         Add to the submission's feedback (calls through to the model).
 
         Only works in marker app.
         """
         if self.scorer_app:
-            self.controller.add_feedback(self.stage_id,
+            self.controller.set_feedback(self.stage_id,
                                          feedback_id,
                                          feedback)
 
@@ -332,7 +319,7 @@ class AdapterForm(AdapterBase):
                                        f' whereas configuration says it should'
                                        f'be {question.scores[outcome["key"]]}.')
 
-            score_value = self.scores[self.stage_id][question.num]
+            score_value = self.outcomes[self.stage_id][question.num]['value']
             if score_value != outcome_value:
                 raise stage.StageError(f'Score is different in outcomes when '
                                        f'compared to existing score for '
@@ -345,7 +332,7 @@ class AdapterForm(AdapterBase):
 
             if outcome['key'] not in question.feedback:
                 feedback = question.feedback[outcome['key']]
-                self.add_feedback(question.num, feedback)
+                self.set_feedback(question.num, feedback)
 
 
         # generate UI elements
@@ -398,7 +385,7 @@ class AdapterForm(AdapterBase):
             self._possible_outcomes[question_id] = outcome
         else:
             # determine if score is valid, and add feedback if missing
-            score_value = self.scores[self.stage_id][question.num]
+            score_value = self.outcomes[self.stage_id][question.num]['value']
             outcome_value = float(outcome['value'])
             if score_value != outcome_value:
                 raise stage.StageError(f'Score is different in outcomes when '
@@ -416,7 +403,9 @@ class AdapterForm(AdapterBase):
             existing_score = outcome['value']
 
             self._possible_outcomes[question_id] = \
-                outcomes.Outcome('input', question.text, existing_score)
+                outcomes.Outcome(outcome_id  = question_id,
+                                 explanation = question.text,
+                                 value       = existing_score)
 
         # generate UI elements
         str_existing_score = '' if existing_score is None \
@@ -453,9 +442,6 @@ class AdapterForm(AdapterBase):
                                        f'feedbacks.')
 
             existing_feedback = outcome['value']
-
-            self._possible_outcomes[question_id] = \
-                outcomes.Outcome('input', question.text, existing_feedback)
 
         # generate UI elements
         w = urwid.Edit('', existing_feedback, multiline=True)
@@ -503,8 +489,7 @@ class AdapterForm(AdapterBase):
             outcome['value'] = score
             outcome['all_values'] = question.scale
 
-            self.add_score(question.num, score)
-            self.add_feedback(question.num, feedback)
+            self.set_feedback(question.num, feedback)
             self.set_outcome(question.num, outcome)
 
             if question_id in self.required_not_completed:
@@ -554,23 +539,17 @@ class AdapterForm(AdapterBase):
 
                 outcome['value'] = value
 
-                self.add_score(q.num, value)
                 self.set_outcome(q.num, outcome)
             except ValueError:
                 if q.score_min != False:
                     outcome['value'] = value
-                    self.add_score(q.num, q.score_min)
                     self.set_outcome(q.num, outcome)
                 else:
                     outcome['value'] = 0.0
-                    self.add_score(q.num, 0.0)
                     self.set_outcome(q.num, outcome)
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''
-            self.add_feedback(q.num, value)
-
-            outcome['value'] = value
-            self.set_outcome(q.num, outcome)
+            self.set_feedback(q.num, value)
 
 
 
@@ -654,8 +633,10 @@ class AdapterMarker(AdapterBase):
 
             # bring it together
             w_inputs        = [uw.JumpableColumns(inputs, dividechars = 1)]
-            w_question_text = [urwid.AttrWrap(urwid.Text(outcome.explanation),
-                                           'table row')]
+            w_question_text = [
+                urwid.AttrWrap(
+                    urwid.Text(outcome['explanation']),
+                    'table row')]
 
             w = urwid.Columns(w_question_text + w_inputs,
                               min_width   = min_question_width,
@@ -682,21 +663,23 @@ class AdapterMarker(AdapterBase):
         # generate UI elements
         inputs = []
         
-        for mark_id, value in enumerate(outcome.all_values):
-            the_value = value[1]
+        for mark_id, value in enumerate(outcome['all_values']):
+            mark = str(value[1])
+
             # replace value if in model
             model_value = self.marks[self.stage_id][outcome_id]\
-                    [str(mark_id)]
-            if model_value is not None:
-                mark = model_value
-            else:
-                self.set_mark(outcome_id,
-                              mark_id,
-                              float(mark))
+                [str(mark_id)]
+            try:
+                if model_value is None or len(model_value) == 0:
+                    self.set_mark(outcome_id,
+                                mark_id,
+                                float(mark))
+            except TypeError:
+                mark = str(model_value)
             
             ws = []
             w = urwid.Edit('',
-                           str(mark),
+                           mark,
                            align = 'center')
             urwid.connect_signal(w,
                                 'postchange',
@@ -706,10 +689,13 @@ class AdapterMarker(AdapterBase):
             ws.append(w)
 
             num_scores = performance[outcome_id]
-            num_submissions = num_scores[value[0]]
-            total_submissions = sum(num_scores.values())
-            percent_submissions = num_submissions/total_submissions*100
-        
+            num_submissions = performance[outcome_id][list(num_scores)[mark_id]]
+            total_submissions = len(self.model.outcomes)
+            try:
+                percent_submissions = num_submissions/total_submissions*100
+            except:
+                percent_submissions = 0
+
             w = urwid.Text(f'{num_submissions}/{total_submissions} '
                            f'{percent_submissions:.2f}%')
             w = urwid.Padding(w, 'center', 'pack')
@@ -725,32 +711,28 @@ class AdapterMarker(AdapterBase):
         ws = []
 
         num_submissions = performance[outcome_id]
-        total_submissions = 0
-        percent_submissions = 0
+        total_submissions = len(self.model.outcomes)
         try:
-            try:
-                total_submissions += performance[outcome_id]
-            except:
-                total_submissions += sum(performance.values())
             percent_submissions = num_submissions/total_submissions*100
         except:
-            pass
+            percent_submissions = 0
         
-        # if the value is None, this is an input field without a preset value
+        # if value is None, this is an input field without a preset value
         # therefore scores can be scaled only
-        if outcome.value is None:
+        if outcome['value'] is None:
             mark = str(1.0)
         else:
-            mark = str(outcome.value)
+            mark = str(outcome['value'])
 
         # replace value if in model
         model_value = self.marks[self.stage_id][outcome_id]
-        if model_value is not None:
+        try:
+            if len(model_value) == 0:
+                self.set_mark(outcome_id,
+                            None,
+                            float(mark))
+        except TypeError:
             mark = str(model_value)
-        else:
-            self.set_mark(outcome_id,
-                          None,
-                          float(mark))
 
         # generate UI elements
         w = urwid.Edit('',

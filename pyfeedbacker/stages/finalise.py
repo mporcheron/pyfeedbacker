@@ -31,7 +31,7 @@ class StageFinalise(stage.HandlerEditText):
 
     def _generate_selective_feedback(self):
         config_params = config.ini.items(f'stage_{self.stage_id}')
-        score = self.model['scores'][self.submission].sum
+        score = self.model.outcomes[self.submission].sum
 
         bounds_regex = re.compile('selective_([0-9.]+)_([0-9.]+)')
         for key, value in config_params:

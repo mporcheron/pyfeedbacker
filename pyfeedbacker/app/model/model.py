@@ -15,64 +15,52 @@ class BaseModel(object):
         All class and feedback should be stored in a storage model of some
         form
         """
-        self.scores    = AllSubmissions(scores.StagesScores)
-        self.feedbacks = AllSubmissions(feedbacks.StagesFeedback)
         self.outcomes  = AllSubmissions(outcomes.StagesOutcomes)
+        self.feedbacks = AllSubmissions(feedbacks.StagesFeedback)
         self.marks     = AllSubmissions(marks.StagesMarks)
-
-        self._set_init_data()
 
     def __getitem__(self, type):
         return super().__getattribute__(type)
-
-    def _set_init_data(self):
-        score_init = config.ini['assessment'].getfloat('score_init', None)
-        if score_init:
-            self['scores']['0'].append('0', score_init)
-
-        feedback_pre = config.ini['assessment'].get('feedback_pre', None)
-        if feedback_pre:
-            self['feedback']['0'].append('0', feedback_pre)
 
     @abc.abstractmethod
     def save(self):
         pass
 
-    def calculate_stage_score(self, stage_id):
-        score = 0.0
-        if stage_id in self['scores']:
-            scores = self['scores'][stage_id]
+    # def calculate_stage_score(self, stage_id):
+    #     score = 0.0
+    #     if stage_id in self['scores']:
+    #         scores = self['scores'][stage_id]
 
-            for this_score in scores.values():
-                if this_score:
-                    score += float(this_score)
+    #         for this_score in scores.values():
+    #             if this_score:
+    #                 score += float(this_score)
 
-        s_max = config.ini[f'stage_{stage_id}'].getfloat('score_max', None)
-        if s_max is not None and score > s_max:
-            score = s_max
+    #     s_max = config.ini[f'stage_{stage_id}'].getfloat('score_max', None)
+    #     if s_max is not None and score > s_max:
+    #         score = s_max
 
-        s_min = config.ini[f'stage_{stage_id}'].getfloat('score_min', None)
-        if s_min is not None and score < s_min:
-            score = s_min
+    #     s_min = config.ini[f'stage_{stage_id}'].getfloat('score_min', None)
+    #     if s_min is not None and score < s_min:
+    #         score = s_min
 
-        return score
+    #     return score
 
-    def calculate_score(self):
-        score = 0
+    # def calculate_score(self):
+    #     score = 0
 
-        raw_scores = self['scores']
-        for stage_id in raw_scores.keys():
-            score += self.__getattribute__(f'score_{stage_id}')
+    #     raw_scores = self['scores']
+    #     for stage_id in raw_scores.keys():
+    #         score += self.__getattribute__(f'score_{stage_id}')
 
-        s_max = config.ini[f'assessment'].getfloat('score_max', None)
-        if s_max is not None and score > s_max:
-            score = s_max
+    #     s_max = config.ini[f'assessment'].getfloat('score_max', None)
+    #     if s_max is not None and score > s_max:
+    #         score = s_max
 
-        s_min = config.ini[f'assessment'].getfloat('score_min', None)
-        if s_min is not None and score < s_min:
-            score = s_min
+    #     s_min = config.ini[f'assessment'].getfloat('score_min', None)
+    #     if s_min is not None and score < s_min:
+    #         score = s_min
 
-        return score
+    #     return score
 
 
 
@@ -106,3 +94,14 @@ class AllSubmissions(OrderedDict):
             items[key] = value.dict
 
         return items
+
+    def __repr__(self):
+        ret = '{' + self.submission + ': {'
+        for key, value in self.items():
+            ret += f'{key}: {value}, '
+        ret += '\})'
+
+        return ret
+
+    def __str__(self):
+        return self.__repr__()

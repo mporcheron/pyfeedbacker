@@ -23,6 +23,16 @@ class StagesData(OrderedDict):
             super().__setitem__(stage_id, self._data_type(stage_id))
             return super().__getitem__(stage_id)
 
+    def __getattribute__(self, stage_id):
+        stage_id = str(stage_id)
+        try:
+            return super().__getattribute__(stage_id)
+        except AttributeError as ae:
+            try:
+                return super().__getitem__(stage_id)
+            except:
+                raise ae
+
     def __contains__(self, stage_id):
         stage_id = str(stage_id)
         try:
@@ -76,6 +86,16 @@ class Data(OrderedDict):
         except KeyError:
             super().__setitem__(data_id, self.init_value)
             return super().__getitem__(data_id)
+
+    def __getattribute__(self, stage_id):
+        stage_id = str(stage_id)
+        try:
+            return super().__getattribute__(stage_id)
+        except AttributeError as ae:
+            try:
+                return super().__getitem__(stage_id)
+            except:
+                raise ae
 
     def __setitem__(self, data_id, value):
         data_id = str(data_id)

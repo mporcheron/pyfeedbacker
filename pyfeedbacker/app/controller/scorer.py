@@ -28,19 +28,23 @@ class Controller(controller.BaseController):
     def set_model(self, model):
         """
         Set the model that'll store information about a submission
-        and then store scores/marks and feedback.
+        and then store outcomes from the scoring and feedback for the
+        submission
         """
         super().set_model(model)
-        self.scores    = model['scores'][self.submission]
-        self.feedbacks = model['feedbacks'][self.submission]
-        self.outcomes  = model['outcomes'][self.submission]
+
+        self.feedbacks = model.feedbacks[self.submission]
+        self.outcomes  = model.outcomes[self.submission]
+
         return self
 
     def execute_first_stage(self):
+        self.view.set_score(self.outcomes.sum)
+
         if self._next_stage_id is not None:
             return
 
-        if self.scores.sum != 0.0 or len(self.feedbacks.str) > 0:
+        if self.outcomes.sum != 0.0 or len(self.feedbacks.str) > 0:
             self.view.show_alert('This submission has already been marked',
                                  'Do you want to keep the existing marking' +
                                  '\n or would you like to start again?',
@@ -52,7 +56,6 @@ class Controller(controller.BaseController):
 
     def _on_keep_existing_scores_response(self, response):
         if response == 'Start again':
-            self.scores.clear()
             self.feedbacks.clear()
             self.outcomes.clear()
 
@@ -62,15 +65,12 @@ class Controller(controller.BaseController):
         self._next_stage_id = self.stages_ids[0]
         self.execute_stage(self._next_stage_id)
 
-    def add_score(self, stage_id, score_id, value):
-        self.scores[stage_id][score_id] = value
-        self.view.set_score(self.scores.sum)
-
-    def add_feedback(self, stage_id, feedback_id, value):
+    def set_feedback(self, stage_id, feedback_id, value):
         self.feedbacks[stage_id][feedback_id] = value
 
     def set_outcome(self, stage_id, outcome_id, outcome):
         self.outcomes[stage_id][outcome_id] = outcome
+        self.view.set_score(self.outcomes.sum)
 
     def select_stage(self, stage_id):
         """
@@ -119,7 +119,7 @@ class Controller(controller.BaseController):
 
         # add feedback
         if stage_info.feedback_pre is not None:
-            self.add_feedback(stage_id, '__pre', stage_info.feedback_pre)
+            self.set_feedback(stage_id, '__pre', stage_info.feedback_pre)
 
         # retrieve the handler
         self.current_stage = (stage_id, stage_info)
@@ -158,7 +158,7 @@ class Controller(controller.BaseController):
             # add post feedback for None as report() is never called
             feedback_post = stage_info.feedback_post
             if feedback_post is not None and len(feedback_post.strip()) > 0:
-                self.add_feedback(stage_id, '__post', feedback_post)
+                self.set_feedback(stage_id, '__post', feedback_post)
         elif isinstance(instance, stage.HandlerForm):
             state = stage.StageInfo.STATE_ACTIVE
             self.view.set_stage_state(self.current_stage[0], state)
@@ -195,13 +195,10 @@ class Controller(controller.BaseController):
             stage_id   = self.current_stage[0]
             stage_info = self.current_stage[1]
 
-        if result.score is not None:
-            self.add_score(stage_id, 'reported', result.score)
-
-        if result.outcome is not None:
+        if result.outcome:
             self.set_outcome(
                 stage_id,
-                result.outcome.outcome_id,
+                result.outcome['outcome_id'],
                 result.outcome)
 
         if result.result == stage.StageResult.RESULT_PASS or \
@@ -245,5 +242,5 @@ class Controller(controller.BaseController):
 
         feedback_post = stage_info.feedback_post
         if feedback_post is not None and len(feedback_post.strip()) > 0:
-            self.add_feedeback(stage_id, '__post', feedback_post)
+            self.set_feedback(stage_id, '__post', feedback_post)
 

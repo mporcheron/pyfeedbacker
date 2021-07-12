@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from .. import config
 from . import base
 
 
@@ -7,6 +8,10 @@ from . import base
 class StagesFeedback(base.StagesData):
     def __init__(self):
         super().__init__(Feedbacks)
+
+        feedback_pre = config.ini['assessment'].get('feedback_pre', False)
+        if feedback_pre:
+            self['__init']['0'] = feedback_pre
 
     str = property(lambda self:self.__str__(), doc="""
             Read-only string of the feedback

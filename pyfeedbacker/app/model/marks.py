@@ -16,14 +16,19 @@ class StagesMarks(base.StagesData):
 
         return marks
 
+    def __repr__(self):
+        ret = 'StagesMarks('
+        for key, value in self.items():
+            ret += f'{key}: {value}, '
+        ret += ')'
+
+        return ret
+
 
 
 class Marks(base.Data):
     def __init__(self, outcome_id):
         super().__init__(outcome_id, None)
-    
-    def __iadd__(self, value):
-        self.__setitem
 
     def __getitem__(self, outcome_id):
         outcome_id = str(outcome_id)
@@ -40,3 +45,11 @@ class Marks(base.Data):
             marks[key] = value
 
         return marks
+
+    def __repr__(self):
+        ret = 'Marks {'
+        for key, value in self.items():
+            ret += f'({key}, {value})'
+        ret += '}'
+
+        return ret
