@@ -137,3 +137,5 @@ _temp/*
 !_temp/empty.txt
 .vscode/launch.json
 .vscode/settings.json
+
+.DS_Store
