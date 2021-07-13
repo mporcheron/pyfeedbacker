@@ -7,7 +7,7 @@ import urwid
 
 
 
-class HeaderWidget(urwid.WidgetWrap):
+class FooterWidget(urwid.WidgetWrap):
 
     def __init__(self, controller, model, window):
         """
@@ -59,7 +59,7 @@ class HeaderWidget(urwid.WidgetWrap):
 
         self._widget = urwid.AttrMap(urwid.Pile(header_content), 'header')
 
-        super(HeaderWidget, self).__init__(self._widget)
+        super(FooterWidget, self).__init__(self._widget)
 
     def set_score(self, score):
         """

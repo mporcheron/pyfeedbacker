@@ -39,7 +39,7 @@ class PopupDialog:
             
             b = uw.SimpleButton(padding + name + padding, self._on_button_press)
             b.action = action
-            b = urwid.AttrWrap(b, 'selectable', 'focus')
+            b = urwid.AttrMap(b, 'button', 'button focus')
             l.append(b)
 
         buttons = urwid.GridFlow(l, width + 6, 3, 1, 'center')

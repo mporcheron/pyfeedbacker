@@ -140,7 +140,6 @@ class FileSystemModel(model.BaseModel):
 
                     if save_marks:
                         try:
-                            # TODO input scores don't are a factor, not replacement
                             group = self.marks[stage_id][score_id]
                             
                             if isinstance(group, dict):

@@ -27,7 +27,7 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         self._show_state = self.view.app == uu.UrwidView.APP_SCORER
 
         contents = [urwid.Divider(),
-                    urwid.AttrWrap(urwid.Text(u'Stage'),
+                    urwid.AttrMap(urwid.Text(u'Stage'),
                     'sidebar title'),
                     urwid.Divider()]
 
@@ -36,7 +36,7 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         self._listwalker = urwid.SimpleFocusListWalker([w])
 
         w = urwid.ListBox(self._listwalker)
-        self._widget = urwid.AttrWrap(w, 'sidebar')
+        self._widget = urwid.AttrMap(w, 'sidebar')
 
         super().__init__(self._widget)
 

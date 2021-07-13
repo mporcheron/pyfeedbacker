@@ -22,23 +22,26 @@ class Controller(controller.BaseController):
         """
         super().__init__()
 
-    def set_model(self, model):
+    def set_view(self, model):
         """
-        Set the model that'll store information about all the submissions.
+        Set the view that will handle the entire interface for the
+        application.
         """
-        super().set_model(model)
-        self.marks   = model['marks']
+        super().set_view(model)
+        self.view.update_marks()
         return self
 
     def set_mark(self, stage_id, outcome_id, mark_id, mark):
         if mark_id is None:
-            self.marks[stage_id][outcome_id] = mark
+            self.model.marks[stage_id][outcome_id] = mark
         else:
             try:
-                self.marks[stage_id][outcome_id][mark_id] = mark
+                self.model.marks[stage_id][outcome_id][mark_id] = mark
             except AttributeError:
-                self.marks[stage_id][outcome_id][mark_id] = {}
-                self.marks[stage_id][outcome_id][mark_id] = mark
+                self.model.marks[stage_id][outcome_id][mark_id] = {}
+                self.model.marks[stage_id][outcome_id][mark_id] = mark
+
+        self.view.update_marks()
 
     def execute_first_stage(self):
         if self._next_stage_id is not None:

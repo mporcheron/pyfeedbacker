@@ -17,7 +17,7 @@ class BaseModel(object):
         """
         self.outcomes  = AllSubmissions(outcomes.StagesOutcomes)
         self.feedbacks = AllSubmissions(feedbacks.StagesFeedback)
-        self.marks     = AllSubmissions(marks.StagesMarks)
+        self.marks     = marks.StagesMarks()
 
     def __getitem__(self, type):
         return super().__getattribute__(type)

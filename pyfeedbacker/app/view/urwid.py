@@ -55,6 +55,9 @@ class UrwidView:
     def set_score(self, score):
         self.window.set_score(score)
 
+    def update_marks(self):
+        self.window.update_marks()
+
     def set_stage_state(self, stage_id, state):
         self.window.set_stage_state(stage_id, state)
 

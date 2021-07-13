@@ -228,14 +228,14 @@ class AdapterForm(AdapterBase):
 
                     current_scale = question.scale
 
-                    w = urwid.Columns([urwid.AttrWrap(
+                    w = urwid.Columns([urwid.AttrMap(
                                         urwid.Padding(urwid.Text(item),
                                                      'center', 'pack'),
                                        'table header')
                                           for item in question.scale],
                                       dividechars = 1)
                     w = urwid.Columns([
-                                        urwid.AttrWrap(urwid.Divider(),
+                                        urwid.AttrMap(urwid.Divider(),
                                                       'table header'),
                                         w],
                                       min_width = min_question_width,
@@ -282,7 +282,7 @@ class AdapterForm(AdapterBase):
                                                                  outcome)
 
             w_inputs        = [uw.JumpableColumns(inputs, dividechars = 1)]
-            w_question_text = [urwid.AttrWrap(urwid.Text(text),
+            w_question_text = [urwid.AttrMap(urwid.Text(text),
                                            'table row')]
 
             w = urwid.Columns(w_question_text + w_inputs,
@@ -607,14 +607,14 @@ class AdapterMarker(AdapterBase):
 
                     current_headings = headings
 
-                    w = urwid.Columns([urwid.AttrWrap(
+                    w = urwid.Columns([urwid.AttrMap(
                                         urwid.Padding(urwid.Text(item),
                                                      'center', 'pack'),
                                        'table header')
                                           for item in headings],
                                       dividechars = 1)
                     w = urwid.Columns([
-                                        urwid.AttrWrap(urwid.Divider(),
+                                        urwid.AttrMap(urwid.Divider(),
                                                       'table header'),
                                         w],
                                       min_width = min_question_width,
@@ -641,7 +641,7 @@ class AdapterMarker(AdapterBase):
             # bring it together
             w_inputs        = [uw.JumpableColumns(inputs, dividechars = 1)]
             w_question_text = [
-                urwid.AttrWrap(
+                urwid.AttrMap(
                     urwid.Text(outcome['explanation']),
                     'table row')]
 
@@ -706,7 +706,7 @@ class AdapterMarker(AdapterBase):
             w = urwid.Text(f'{num_submissions}/{total_submissions} '
                            f'{percent_submissions:.2f}%')
             w = urwid.Padding(w, 'center', 'pack')
-            w = urwid.AttrMap(w, 'faded')
+            w = urwid.AttrMap(w, 'text faded')
             ws.append(w)
 
             inputs.append(urwid.Pile(ws))
