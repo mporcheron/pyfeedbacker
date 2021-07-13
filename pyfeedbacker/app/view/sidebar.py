@@ -71,8 +71,7 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         stage. Returns None if there is no next stage.
         """
         try:
-            next_pos   = self._listwalker.focus + 1
-            next_stage = self._stages[next_pos - 1]
+            next_stage = self._stages[self._active_pos + 1]
             return next_stage
         except IndexError:
             return None
