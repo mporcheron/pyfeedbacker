@@ -4,6 +4,7 @@ from .. import config, stage
 from ..controller import scorer
 
 import urwid
+import math
 import statistics
 
 
@@ -20,17 +21,12 @@ class FooterWidget(urwid.WidgetWrap):
 
         header_text = config.ini['app']['name']
 
-        self._show_marks = False
+        self._show_scores = False
         if isinstance(controller, scorer.Controller):
-            self._show_marks = \
-                config.ini['assessment'].getboolean('scores_are_marks', False)
-            header_text += f' ({controller.submission})'
-        
-        header_text_widget = urwid.Text((header_text), align='left')
-        header_text_len = len(header_text)
+            self._showing_scores = True
 
-        self._show = 'score' if isinstance(controller, scorer.Controller) \
-                     else 'mark'
+        self._show_text = 'score' if isinstance(controller, scorer.Controller) \
+                           else 'mark'
 
         # widgets for values
         self._w_mean    = urwid.Text('-')
@@ -42,26 +38,27 @@ class FooterWidget(urwid.WidgetWrap):
         self._w_iqr     = urwid.Text('-')
 
         # add statistics information
-        contents  = [urwid.Text(f'Mean f{self._show}'),
+        contents  = [urwid.Text(f'Mean f{self._show_text}'),
                      self._w_mean]
-        contents += [urwid.Text(f'Mean {self._show} (no zeroes)'),
+        contents += [urwid.Text(f'Mean {self._show_text} (no zeroes)'),
                      self._w_mean_nz]
-        contents += [urwid.Text(f'Median {self._show}'),
+        contents += [urwid.Text(f'Median {self._show_text}'),
                      self._w_median]
-        contents += [urwid.Text(f'Lowest {self._show}'),
+        contents += [urwid.Text(f'Lowest {self._show_text}'),
                      self._w_low]
-        contents += [urwid.Text(f'Highest {self._show}'),
+        contents += [urwid.Text(f'Highest {self._show_text}'),
                      self._w_high]
         contents += [urwid.Text(f'IQR'),
                      self._w_iqr]
 
-        col1labels = urwid.Pile([urwid.Text(f'Mean {self._show}'),
-                                 urwid.Text(f'Mean {self._show} (no zeroes)'),
-                                 urwid.Text(f'Median {self._show}')])
+        col1labels = urwid.Pile([urwid.Text(f'Mean {self._show_text}'),
+                                 urwid.Text(f'Mean {self._show_text} '
+                                            f'(no zeroes)'),
+                                 urwid.Text(f'Median {self._show_text}')])
         col1values = urwid.Pile([self._w_mean, self._w_mean_nz, self._w_median])
 
-        col2labels = urwid.Pile([urwid.Text(f'Lowest {self._show}'),
-                                 urwid.Text(f'Highest {self._show}'),
+        col2labels = urwid.Pile([urwid.Text(f'Lowest {self._show_text}'),
+                                 urwid.Text(f'Highest {self._show_text}'),
                                  urwid.Text(f'IQR')])
         col2values = urwid.Pile([self._w_low, self._w_high, self._w_iqr])
 
@@ -83,13 +80,17 @@ class FooterWidget(urwid.WidgetWrap):
                 (2, 0): 'graph bg 2 smooth'
             }
         )
-        self._graph.set_data([[2,80],[0,50]],100)
 
         graph = urwid.Padding(self._graph, left = 1, right = 1)
         graph = urwid.BoxAdapter(graph, height=5)
+
+        no_cols_w = urwid.Columns([urwid.Text('-', align = 'center')])
+        self._axis = urwid.WidgetWrap(no_cols_w)
         
+        graph_panel = urwid.Pile([graph, self._axis])
+
         self._widget = urwid.AttrMap(
-            urwid.Columns([stats_panel, graph]),
+            urwid.Columns([stats_panel, graph_panel]),
             'footer')
         super().__init__(self._widget)
 
@@ -105,9 +106,20 @@ class FooterWidget(urwid.WidgetWrap):
         self._w_high.set_text(stats.high)
         self._w_iqr.set_text(stats.iqr)
 
+        showing = FooterWidget.Statistics.GRAPH_SCORES if self._show_scores \
+                  else FooterWidget.Statistics.GRAPH_MARKS
+        (axis, data, max_value) = stats.graph_data(showing)
+
+        axis_w = [urwid.Text(str(x), align='center') for x in axis]
+        self._axis._w = urwid.Columns(axis_w)
+
+        data = [([y] if x%2==0 else [0,y]) for x, y in enumerate(data)]
+        self._graph.set_data(data, max_value)
 
 
     class Statistics:
+        GRAPH_SCORES, GRAPH_MARKS = range(0,2)
+
         def __init__(self):
             self.reset()
 
@@ -149,3 +161,39 @@ class FooterWidget(urwid.WidgetWrap):
             q = statistics.quantiles(self.values, n=4, method='inclusive')
             iqr = q[2] - q[1]
             return f'{iqr:.2f}'
+
+        def graph_data(self, showing):
+            if showing == FooterWidget.Statistics.GRAPH_SCORES:
+                min_value = config.ini['assessment'].getfloat('score_min', None)
+                max_value = config.ini['assessment'].getfloat('score_max', None)
+            elif showing == FooterWidget.Statistics.GRAPH_MARKS:
+                min_value = config.ini['assessment'].getfloat('score_min', None)
+                max_value = config.ini['assessment'].getfloat('score_max', None)
+            else:
+                raise AttributeError('The attribute `showing` must be '
+                                     'GRAPH_SCORES or GRAPH_MARKS')
+
+            if min_value is None:
+                min_value = self.low
+            if max_value is None:
+                max_value = self.high
+
+            num_cols = config.ini['app'].getint('graph_columns', 10)
+            if num_cols < 1:
+                num_cols = 10
+            step = (max_value - min_value) / num_cols
+
+            counts = [0] * num_cols
+            for i in self.values:
+                # if a key doesn't exist that means it is the maximum value
+                try:
+                    counts[math.floor(i / step)] += 1            
+                except:
+                    counts[-1] += 1
+
+
+            axis = list(range(math.floor(min_value),
+                              math.ceil(max_value),
+                              int(step)))
+
+            return (axis, counts, max(counts))
