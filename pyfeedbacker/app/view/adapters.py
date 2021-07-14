@@ -310,7 +310,8 @@ class AdapterForm(AdapterBase):
             if question.required:
                 self.required_not_completed.add(question.num)
 
-            outcome = outcomes.Outcome('?', question.text)
+            outcome = outcomes.Outcome(outcome_id = '?',
+                                       explanation = question.text)
             self._possible_outcomes[question_id] = outcome
         else:
             outcome_value = float(outcome['value'])
@@ -351,9 +352,9 @@ class AdapterForm(AdapterBase):
                     checked = True
 
                     outcome = \
-                        outcomes.Outcome(score_id,
-                                         question.text,
-                                         existing_score,)
+                        outcomes.Outcome(key         = score_id,
+                                         explanation = question.text,
+                                         value       = existing_score)
                     self._possible_outcomes[question_id] = outcome
             except ValueError:
                 pass
@@ -386,7 +387,8 @@ class AdapterForm(AdapterBase):
             if question.required:
                 self.required_not_completed.add(question.num)
 
-            outcome = outcomes.Outcome('input', question.text)
+            outcome = outcomes.Outcome(outcome_id  = question_id,
+                                       explanation = question.text)
             self._possible_outcomes[question_id] = outcome
         else:
             # determine if score is valid, and add feedback if missing
@@ -434,7 +436,8 @@ class AdapterForm(AdapterBase):
             if question.required:
                 self.required_not_completed.add(question.num)
 
-            outcome = outcomes.Outcome('input', question.text)
+            outcome = outcomes.Outcome(outcome_id  = question_id,
+                                       explanation = question.text)
             self._possible_outcomes[question_id] = outcome
         else:
             # determine if score is valid, and add feedback if missing
