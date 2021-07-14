@@ -32,6 +32,7 @@ class Controller(controller.BaseController):
         return self
 
     def set_mark(self, stage_id, outcome_id, mark_id, mark):
+        mark_id = str(mark_id)
         if mark_id is None:
             self.model.marks[stage_id][outcome_id] = mark
         else:
