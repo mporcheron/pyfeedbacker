@@ -28,20 +28,24 @@ class Window:
         self.view       = view
 
         self.palette = [
-            ('title',          '', '', '', 'bold,#ff0',  ''),
-            ('footer',         '', '', '', 'g3',         'g93'),
+            ('body',           '', '', '', 'g3',         'g93'),
+            ('body faded',     '', '', '', 'g52',        'g93'),
+            ('footer',         '', '', '', 'g93',         ''),
             ('sidebar',        '', '', '', '#fff',       'g11'),
             ('sidebar title',  '', '', '', '#fff,bold',  'g11'),
             ('stage',          '', '', '', 'white',      'g11'),
             ('stage active',   '', '', '', '#fff',       'black'),
             ('stage focus',    '', '', '', '#000',       '#ff0'),
-            ('text faded',     '', '', '', 'g52',        ''),
-            ('table header',   '', '', '', '#fff,bold',  'g23'),
-            ('table row',      '', '', '', '#fff,bold',  ''),
+            ('table header',   '', '', '', '#000,bold',  'g73'),
+            ('table row',      '', '', '', 'g3',         'g93'),
             ('edit',           '', '', '', 'white',      'dark blue'),
             ('edit selected',  '', '', '', '#fff,bold',  'dark blue'),
             ('button',         '', '', '', 'black',      'g58'),
-            ('button focus',   '', '', '', 'black',      '#ff0')]
+            ('button focus',   '', '', '', 'black',      '#ff0'),
+            ('graph bg 1',         '',      'dark blue', 'standout'),
+            ('graph bg 1 smooth',  'dark blue',  ''),
+            ('graph bg 2',         '',      'dark cyan', 'standout'),
+            ('graph bg 2 smooth',  'dark cyan',  '')]
 
         self.header  = uh.HeaderWidget(controller, model, self)
         self.footer = None
@@ -49,17 +53,19 @@ class Window:
         if self.view.app == uu.UrwidView.APP_SCORER:
             self.palette.append(
                 ('header',         '', '', '', 'bold',      '#0af'))
+            self.palette.append(
+                ('title',          '', '', '', 'bold,#0af', 'g93'))
 
             if config.ini['scorer'].getboolean('enable_footer', False):
                 self.footer = uf.FooterWidget(controller, model, self)
         elif self.view.app == uu.UrwidView.APP_MARKER:
             self.palette.append(
                 ('header',         '', '', '', 'bold',      '#d06'))
+            self.palette.append(
+                ('title',          '', '', '', 'bold,#d06', 'g93'))
 
             if config.ini['marker'].getboolean('enable_footer', True):
                 self.footer = uf.FooterWidget(controller, model, self)
-
-
 
         if sidebar is Window.SIDEBAR_STAGES:
             self.sidebar = us.SidebarStagesWidget(controller, model, view, self)
@@ -89,11 +95,14 @@ class Window:
             urwid.Padding(w, left=2, right=2, min_width=20)]
         self._main = urwid.SimpleFocusListWalker(content)
 
+        main = uw.EscableListBox(self._main, self._on_focus_sidebar)
+        main = urwid.AttrMap(main, 'body', 'body')
+
         # window layout
         body = urwid.Columns(
             [
                 ('fixed', self.sidebar.get_width(), self.sidebar),
-                uw.EscableListBox(self._main, self._on_focus_sidebar)
+                main
             ])
 
         l = [urwid.Divider(), body]
@@ -234,7 +243,7 @@ class Window:
             b = urwid.AttrMap(b, 'button', 'button focus')
             b = urwid.WidgetWrap(b)
             bs = urwid.GridFlow([b], continue_text_len, 3, 2, 'center')
-            output += [bs]
+            output += [bs, urwid.Divider()]
 
         w = uw.JumpablePile(output)
 

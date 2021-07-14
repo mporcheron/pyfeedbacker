@@ -68,10 +68,29 @@ class FooterWidget(urwid.WidgetWrap):
         
         stats_panel = urwid.Columns([col1labels, col1values,
                                      col2labels, col2values], 1)
+        stats_panel = urwid.Filler(stats_panel, top = 1, min_height = 5)
+        stats_panel = urwid.BoxAdapter(stats_panel, height = 5)
         stats_panel = urwid.Padding(stats_panel, left = 1, right = 1)
 
+        self._graph = urwid.BarGraph(
+            attlist=['footer', 'graph bg 1', 'graph bg 2'],
+            hatt={
+                (1, 0): 'graph bg 1',
+                (2, 0): 'graph bg 2'
+            },
+            satt={
+                (1, 0): 'graph bg 1 smooth',
+                (2, 0): 'graph bg 2 smooth'
+            }
+        )
+        self._graph.set_data([[2,80],[0,50]],100)
 
-        self._widget = urwid.AttrMap(stats_panel, 'footer')
+        graph = urwid.Padding(self._graph, left = 1, right = 1)
+        graph = urwid.BoxAdapter(graph, height=5)
+        
+        self._widget = urwid.AttrMap(
+            urwid.Columns([stats_panel, graph]),
+            'footer')
         super().__init__(self._widget)
 
 

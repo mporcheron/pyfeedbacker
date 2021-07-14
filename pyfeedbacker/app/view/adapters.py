@@ -706,7 +706,7 @@ class AdapterMarker(AdapterBase):
             w = urwid.Text(f'{num_submissions}/{total_submissions} '
                            f'{percent_submissions:.2f}%')
             w = urwid.Padding(w, 'center', 'pack')
-            w = urwid.AttrMap(w, 'text faded')
+            w = urwid.AttrMap(w, 'body faded')
             ws.append(w)
 
             inputs.append(urwid.Pile(ws))
@@ -756,7 +756,7 @@ class AdapterMarker(AdapterBase):
         w = urwid.Text(f'{num_submissions}/{total_submissions} '
                        f'{percent_submissions:.2f}%')
         w = urwid.Padding(w, 'center', 'pack')
-        w = urwid.AttrMap(w, 'faded')
+        w = urwid.AttrMap(w, 'body faded')
         ws.append(w)
         
         return [urwid.Pile(ws)]
