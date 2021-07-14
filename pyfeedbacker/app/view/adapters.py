@@ -210,7 +210,10 @@ class AdapterForm(AdapterBase):
         min_question_width = 20
 
         self.questions = output.questions
+
         self.required_not_completed = set()
+        self.completed = False
+
         self._last_selected_widget = None
         self._skip_on_edit_change = None
         self._possible_outcomes = {}
@@ -397,15 +400,17 @@ class AdapterForm(AdapterBase):
                                        f'{outcome["value"]} whereas saved'
                                        f' score is {score_value}.')
 
-            if question.score_min > outcome_value:
-                outcome['value'] = question.score_min
-            elif question.score_max < outcome_value:
-                outcome['value'] = question.score_max
+            if self._last_selected_widget != question_id:
+                if question.score_min > outcome_value:
+                    outcome['value'] = question.score_min
+                elif question.score_max < outcome_value:
+                    outcome['value'] = question.score_max
 
             existing_score = outcome['value']
 
             self._possible_outcomes[question_id] = \
                 outcomes.Outcome(outcome_id  = question_id,
+                                 key         = None,
                                  explanation = question.text,
                                  value       = existing_score)
 
@@ -459,6 +464,9 @@ class AdapterForm(AdapterBase):
         Determine if all the required questions have been completed and if
         so, update the status of this stage.
         """
+        if self.completed:
+            return
+
         if len(self.required_not_completed) == 0:
             focus_path = self.window.frame.get_focus_path()
 
@@ -468,6 +476,7 @@ class AdapterForm(AdapterBase):
             self.controller.report(result, self.stage_id)
 
             self.window.frame.set_focus_path(focus_path)
+            self.completed = True
 
     def _on_radio_check(self, w, state, user_data):
         """
@@ -510,7 +519,7 @@ class AdapterForm(AdapterBase):
             self._skip_on_edit_change = None
             return
 
-        self._last_selected_widget = w
+        self._last_selected_widget = question_id
 
         value = w.get_edit_text()
         q = self.questions[question_id]
@@ -541,14 +550,14 @@ class AdapterForm(AdapterBase):
 
                 outcome['value'] = value
 
-                self.set_outcome(q.num, outcome)
+                self.set_outcome(q.num, outcome = outcome)
             except ValueError:
                 if q.score_min != False:
                     outcome['value'] = value
-                    self.set_outcome(q.num, outcome)
+                    self.set_outcome(q.num, outcome = outcome)
                 else:
                     outcome['value'] = 0.0
-                    self.set_outcome(q.num, outcome)
+                    self.set_outcome(q.num, outcome = outcome)
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''
             self.set_feedback(q.num, value)

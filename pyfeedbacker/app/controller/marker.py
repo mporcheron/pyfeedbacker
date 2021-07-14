@@ -38,7 +38,11 @@ class Controller(controller.BaseController):
         else:
             try:
                 self.model.marks[stage_id][outcome_id][mark_id] = mark
+            except TypeError:
+                # mark_id is invalid type (likely None)
+                self.model.marks[stage_id][outcome_id] = mark
             except AttributeError:
+                # mark_id doesn't exist
                 self.model.marks[stage_id][outcome_id][mark_id] = {}
                 self.model.marks[stage_id][outcome_id][mark_id] = mark
 
