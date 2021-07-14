@@ -71,7 +71,7 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         stage. Returns None if there is no next stage.
         """
         try:
-            next_stage = self._stages[self._active_pos + 1]
+            next_stage = self._stages[self._active_pos]
             return next_stage
         except IndexError:
             return None
