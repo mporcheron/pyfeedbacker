@@ -99,6 +99,9 @@ class FooterWidget(urwid.WidgetWrap):
         """
         Update the statistics displayed. Pass in a Statistics class (below)
         """
+        if len(stats.values) == 0:
+            return
+
         self._w_mean.set_text(stats.mean)
         self._w_mean_nz.set_text(stats.mean_nz)
         self._w_median.set_text(stats.median)

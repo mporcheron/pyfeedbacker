@@ -683,8 +683,13 @@ class AdapterMarker(AdapterBase):
             mark = str(value[1])
 
             # replace value if in model
-            model_value = self.marks[self.stage_id][outcome_id]\
-                [str(mark_id)]
+            model_value = None
+            try:
+                model_value = self.marks[self.stage_id][outcome_id]\
+                    [str(mark_id)]
+            except:
+                self.marks[self.stage_id][outcome_id] = {str(mark_id): None}
+
             try:
                 if model_value is None or len(model_value) == 0:
                     self.set_mark(outcome_id,
@@ -743,7 +748,7 @@ class AdapterMarker(AdapterBase):
         # replace value if in model
         model_value = self.marks[self.stage_id][outcome_id]
         try:
-            if len(model_value) == 0:
+            if model_value is None or len(model_value) == 0:
                 self.set_mark(outcome_id,
                             None,
                             float(mark))
