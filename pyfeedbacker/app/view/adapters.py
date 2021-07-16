@@ -529,7 +529,11 @@ class AdapterForm(AdapterBase):
 
         outcome = self._possible_outcomes[question_id]
 
-        if q.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
+        if len(value.strip()) == 0:
+            outcome['value'] = None
+            self.set_outcome(q.num, outcome = outcome)
+            outcome
+        elif q.type == stage.OutputForm.Question.TYPE_INPUT_SCORE:
             try:
                 value = float(value) if value is not None else 0.0
 
@@ -552,14 +556,13 @@ class AdapterForm(AdapterBase):
                     w.set_edit_text(strvalue)
 
                 outcome['value'] = value
-
                 self.set_outcome(q.num, outcome = outcome)
             except ValueError:
                 if q.score_min != False:
                     outcome['value'] = value
                     self.set_outcome(q.num, outcome = outcome)
                 else:
-                    outcome['value'] = 0.0
+                    outcome['value'] = None
                     self.set_outcome(q.num, outcome = outcome)
         elif q.type == stage.OutputForm.Question.TYPE_INPUT_FEEDBACK:
             value = value if value is not None else ''

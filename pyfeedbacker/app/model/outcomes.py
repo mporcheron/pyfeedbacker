@@ -59,23 +59,27 @@ class Outcomes(base.Data):
         outcome_id = str(outcome_id)
         return super().__getitem__(outcome_id)
 
-    def __setitem__(self, outcome_id, outcome):
+    def __setitem__(self, outcome_id, new_outcome):
         outcome_id = str(outcome_id)
         if outcome_id in self:
-            new_outcome = self[outcome_id]
-            if outcome['outcome_id']:
-                new_outcome['outcome_id'] = outcome['outcome_id']
-            if outcome['key']:
-                new_outcome['key'] = outcome['key']
-            if outcome['explanation']:
-                new_outcome['explanation'] = outcome['explanation']
-            if outcome['value']:
-                new_outcome['value'] = outcome['value']
-            if outcome['all_values']:
-                new_outcome['all_values'] = outcome['all_values']
+            outcome = self[outcome_id]
+            if new_outcome['outcome_id'] != outcome['outcome_id']:
+                outcome['outcome_id'] = new_outcome['outcome_id']
+
+            if new_outcome['key'] != outcome['key']:
+                outcome['key'] = new_outcome['key']
+
+            if new_outcome['explanation'] != outcome['explanation']:
+                outcome['explanation'] = new_outcome['explanation']
+
+            if new_outcome['value'] != outcome['value']:
+                outcome['value'] = new_outcome['value']
+
+            if new_outcome['all_values'] != outcome['all_values']:
+                outcome['all_values'] = new_outcome['all_values']
         else:
-            outcome['outcome_id'] = outcome_id
-            return super().__setitem__(outcome_id, outcome)
+            new_outcome['outcome_id'] = outcome_id
+            return super().__setitem__(outcome_id, new_outcome)
 
     def add(self, outcome_id, key, explanation, score):
         self.__setitem__(outcome_id, Outcome(key, explanation, score))
