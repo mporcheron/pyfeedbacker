@@ -65,51 +65,15 @@ class AutoWidthButton(SimpleButton):
 
 
 
-class JumpablePile(urwid.Pile):
+class TabbleColumns(urwid.Columns):
 
-    def keypress(self, size, key):
-        """
-        A jumpable Pile allows you to press alt/option/meta + up/down arrow
-        to jump up/down the pile to focus.
-        """
-        if key == 'meta down':
-            return super().keypress(size, 'page down')
-        elif key == 'meta up':
-            return super().keypress(size, 'page up')
+    def __init__(self, widget_list, dividechars=0, focus_column=None,
+            min_width=1, box_columns=None):
+        super().__init__(widget_list, dividechars, focus_column,
+            min_width, box_columns)
 
-        return super().keypress(size, key)
-
-
-
-class JumpableColumns(urwid.Columns):
-
-    def keypress(self, size, key):
-        """
-        A jumpable Columns allows you to press alt/option/meta + right/left
-        arrow to jump right/left accross the columns to focus.
-
-        Also loops at the left and right.
-        """
-        first_focus_position = None
-        last_focus_position = None
-        for wi, w in enumerate(self.contents):
-            if w[0].selectable():
-                first_focus_position = wi
-                break
-
-        for wi, w in enumerate(reversed(self.contents)):
-            if w[0].selectable():
-                last_focus_position = len(self.contents) - wi - 1
-                break
-
-        if (self.focus_position == first_focus_position and key == 'left') \
-                or key == 'meta f':
-            self.focus_position = last_focus_position
-        elif (self.focus_position == last_focus_position and key == 'right') \
-                or key == 'meta b':
-            self.focus_position = first_focus_position
-        else:
-            return super().keypress(size, key)
+        self._command_map['tab']       = 'cursor right'
+        self._command_map['shift tab'] = 'cursor left'
 
 
 

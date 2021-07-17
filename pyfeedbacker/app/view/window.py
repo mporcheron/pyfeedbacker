@@ -247,7 +247,7 @@ class Window:
             bs = urwid.GridFlow([b], continue_text_len, 3, 2, 'center')
             output += [bs, urwid.Divider()]
 
-        w = uw.JumpablePile(output)
+        w = urwid.Pile(output)
 
         if self.visible_stage_id in self._output_adapters:
             adapter = self._output_adapters[self.visible_stage_id]

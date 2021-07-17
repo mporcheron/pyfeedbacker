@@ -284,7 +284,7 @@ class AdapterForm(AdapterBase):
                                                                  question,
                                                                  outcome)
 
-            w_inputs        = [uw.JumpableColumns(inputs, dividechars = 1)]
+            w_inputs        = [uw.TabbleColumns(inputs, dividechars = 1)]
             w_question_text = [urwid.AttrMap(urwid.Text(text),
                                            'table row')]
 
@@ -507,7 +507,6 @@ class AdapterForm(AdapterBase):
             outcome = self._possible_outcomes[question_id]
             outcome['key']   = score_id
             outcome['value'] = score
-            # outcome['all_values'] = question.scale
 
             self.set_feedback(question.num, feedback)
             self.set_outcome(question.num, outcome)
@@ -660,7 +659,7 @@ class AdapterMarker(AdapterBase):
                                                         self.performance)
 
             # bring it together
-            w_inputs        = [uw.JumpableColumns(inputs, dividechars = 1)]
+            w_inputs        = [uw.TabbleColumns(inputs, dividechars = 1)]
             w_question_text = [
                 urwid.AttrMap(
                     urwid.Text(outcome['explanation']),
