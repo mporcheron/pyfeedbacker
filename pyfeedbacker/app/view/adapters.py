@@ -251,18 +251,18 @@ class AdapterForm(AdapterBase):
                 current_scale = None
 
             # text label
-            text = question.text
+            text = [(question.text)]
             if question.score_min != False:
-                text += ' (min: ' + str(question.score_min)
+                text += (' (min: ' + str(question.score_min))
                 if question.score_max:
-                    text += ', max: ' + str(question.score_max) + ')'
+                    text += (', max: ' + str(question.score_max) + ')')
                 else:
-                    text += ')'
+                    text += (')')
             elif question.score_max != False:
-                text += ' (max: ' + str(question.score_max) + ')'
+                text += (' (max: ' + str(question.score_max) + ')')
 
             if question.required:
-                text += ' *'
+                text += [('body required', ' *')]
 
             # existing values in the model?
             outcome = None

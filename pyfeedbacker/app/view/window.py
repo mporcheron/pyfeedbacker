@@ -30,6 +30,7 @@ class Window:
         self.palette = [
             ('body',           '', '', '', 'g3',         'g93'),
             ('body faded',     '', '', '', 'g52',        'g93'),
+            ('body required',  '', '', '', '#f00,bold',  'g93'),
             ('footer',         '', '', '', 'g93',         ''),
             ('sidebar',        '', '', '', '#fff',       'g11'),
             ('sidebar title',  '', '', '', '#fff,bold',  'g11'),
