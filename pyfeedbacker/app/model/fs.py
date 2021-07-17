@@ -195,19 +195,38 @@ class FileSystemModel(model.BaseModel):
 
                 with open(path, 'w') as f:
                     data = {}
-                    data['score'] = float(self.outcomes[submission].sum)
+                    data['score'] = self.outcomes[submission].sum
+                    data['mark'] = self.marks.sum(self.outcomes[submission])
+
+                    data['score_min'] = config.ini['assessment'].getfloat(
+                        'score_min', None)
                     data['score_max'] = config.ini['assessment'].getfloat(
                         'score_max', None)
+
+                    data['mark_min'] = config.ini['assessment'].getfloat(
+                        'mark_min', None)
+                    data['mark_max'] = config.ini['assessment'].getfloat(
+                        'mark_max', None)
 
                     scores = self.outcomes[submission]
                     for stage_id, stage_scores in scores.items():
                         data[f'stage_{stage_id}_score'] = stage_scores.sum
+                        data[f'stage_{stage_id}_mark'] = \
+                            self.marks[stage_id].sum(stage_scores)
+
                         data[f'stage_{stage_id}_score_max'] = \
                             config.ini[f'stage_{stage_id}'].getfloat(
                                 'score_max', None)
+                        data[f'stage_{stage_id}_mark_max'] = \
+                            config.ini[f'stage_{stage_id}'].getfloat(
+                                'mark_max', None)
+
                         data[f'stage_{stage_id}_score_min'] = \
                             config.ini[f'stage_{stage_id}'].getfloat(
                                 'score_min', None)
+                        data[f'stage_{stage_id}_mark_min'] = \
+                            config.ini[f'stage_{stage_id}'].getfloat(
+                                'mark_min', None)
 
                     feedback = str(self['feedbacks'][submission])
                     for key, value in data.items():

@@ -84,7 +84,8 @@ class Marks(base.Data):
                         # raise KeyError if not in it
                         # raise ValueError if mark not set
                         key in self[outcome_id]
-                        sum += self[outcome_id][key]
+                        value = self[outcome_id][key]
+                        sum += value
                     except TypeError:
                         if score['user_input']:
                             try:
@@ -102,6 +103,9 @@ class Marks(base.Data):
                 except TypeError:
                     # may be a non-scored value
                     pass
+            except TypeError:
+                # no score
+                pass
 
         m_max = config.ini[f'stage_{self.stage_id}'].getfloat('mark_max', None)
         if m_max is not None and sum > m_max:
