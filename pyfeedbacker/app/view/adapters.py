@@ -398,20 +398,23 @@ class AdapterForm(AdapterBase):
         else:
             # determine if score is valid, and add feedback if missing
             score_value = self.outcomes[self.stage_id][question.num]['value']
-            outcome_value = float(outcome['value'])
-            if score_value != outcome_value:
-                raise stage.StageError(f'Score is different in outcomes when '
-                                       f'compared to existing score for '
-                                       f'question {question.num} in '
-                                       f'{self.stage_id}. Outcome value is '
-                                       f'{outcome["value"]} whereas saved'
-                                       f' score is {score_value}.')
+            try:
+                outcome_value = float(outcome['value'])
+                if score_value != outcome_value:
+                    raise stage.StageError(f'Score is different in outcomes when '
+                                            f'compared to existing score for '
+                                            f'question {question.num} in '
+                                            f'{self.stage_id}. Outcome value '
+                                            f'is {outcome["value"]} whereas '
+                                            f'saved score is {score_value}.')
 
-            if self._last_selected_widget != question_id:
-                if question.score_min > outcome_value:
-                    outcome['value'] = question.score_min
-                elif question.score_max < outcome_value:
-                    outcome['value'] = question.score_max
+                if self._last_selected_widget != question_id:
+                    if question.score_min > outcome_value:
+                        outcome['value'] = question.score_min
+                    elif question.score_max < outcome_value:
+                        outcome['value'] = question.score_max
+            except TypeError:
+                pass
 
             existing_score = outcome['value']
 
