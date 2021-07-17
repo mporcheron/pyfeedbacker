@@ -362,19 +362,23 @@ class StageOutcomes(dict):
 
 
 
-class OutputNone:
+class OutputBase:
     def __init__(self):
-        """
-        There is no output for a given stage.
-        """
+        """Base output specifier that all output classes must extend."""
         pass
 
 
 
-class OutputText:
+class OutputNone(OutputBase):
+    def __init__(self):
+        """There is no output for a given stage."""
+        pass
+
+
+
+class OutputText(OutputBase):
     def __init__(self, text = ''):
-        """
-        An output for a stage is simply text.
+        """An output for a stage that is simply some text to display.
 
         This can be a single string or a list of string.
         """
@@ -382,25 +386,29 @@ class OutputText:
 
 
 
-class OutputEditText:
+class OutputEditText(OutputBase):
     def __init__(self, texts = []):
+        """An output consisting of one or more edit text fields.
+
+        A callback should be called when a field is modified if one is set 
+        using the `callback` member variable.
+
+        Empty texts will be displayed as a field, unless the `skip_empty` is 
+        set to `True`, in which case, they should be ommited from the output.
+
+        Argument:
+        texts -- A series of texts to allow editing of.
         """
-        An output for one or more edit text fields.
-        """
-        self.texts = texts
-        self.callback = None
+        self.texts      = texts
+        self.callback   = None
         self.skip_empty = False
 
-    def set_callback(self, callback):
-        self.callback = callback
 
 
-
-class OutputForm:
+class OutputForm(OutputBase):
     def __init__(self, stage_id):
-        """
-        An output for a stage is a form to complete, based on values set
-        in the application configuration.
+        """An output for a stage consisting of a form to complete, based on 
+        values set in the application configuration.
         """
         try:
             cfg = config.ini['stage_' + stage_id]
@@ -476,6 +484,12 @@ class OutputForm:
             self.questions.append(q)
 
     def get_scale(stage_id, num):
+        """Calculate the scale for a given question and stage in the application configuration.
+
+        Argument:
+        stage_id -- The unique stage identifier.
+        num -- The configuration unique question number.
+        """
         try:
             cfg = config.ini['stage_' + stage_id]
         except KeyError:
@@ -500,6 +514,17 @@ class OutputForm:
         TYPE_SCALE, TYPE_INPUT_SCORE, TYPE_INPUT_FEEDBACK = range(0,3)
 
         def __init__(self, num, text, required):
+            """A question container. You should create the `Question` and then 
+            call one of `set_scale`, `set_input_score`, or `set_input_feedback`.
+
+            Arguments:
+            num -- The configured number for the question (not the unique 
+                question identifier, which is assigned at runtime based on 
+                ordering.
+            text -- The instruction/question text
+            required -- A boolean value determining if the question is required
+                or not.
+            """
             self.num       = num
             self.text      = text
             self.required  = required
@@ -526,7 +551,7 @@ class OutputForm:
 
 
 
-class OutputChecklist:
+class OutputChecklist(OutputBase):
     def __init__(self, progress = []):
         """
         An output for a stage is a checklist of progress of execution.
@@ -549,7 +574,7 @@ class OutputChecklist:
 
 
 
-class OutputMarker:
+class OutputMarker(OutputBase):
     def __init__(self, model, stage_id, outcomes):
         """
         Weighting output for a stage, based on its registered outcomes

@@ -1,30 +1,19 @@
 # -*- coding: utf-8 -*-
 
 from . import controller
-from .. import config, stage
-from ..view import urwid as view
-
-from collections import OrderedDict
-
-import abc
-import importlib
-import os
-import sys
-import threading
+from .. import stage
 
 
 
 class Controller(controller.BaseController):
-
     def __init__(self):
-        """
-        Controller for creating marks for all the submission components, and thus each submission's mark. Generates final feedback too.
+        """Controller for creating marks for all the submission components, and 
+        thus each submission's mark. Generates final feedback too.
         """
         super().__init__()
 
     def set_model(self, model):
-        """
-        Set the model that'll store information about all submissions.
+        """Set the model that'll store information about all submissions.
         """
         super().set_model(model)
 
@@ -34,8 +23,7 @@ class Controller(controller.BaseController):
         return self
 
     def set_view(self, model):
-        """
-        Set the view that will handle the entire interface for the
+        """Set the view that will handle the entire interface for the
         application.
         """
         super().set_view(model)
@@ -43,6 +31,20 @@ class Controller(controller.BaseController):
         return self
 
     def _create_marks_model_scale(self, stage_id, outcome_id, outcome):
+        """Populate the marks model for a specific outcome that is a question 
+        where there is a range of possible values/scores awarded per
+        submission. Takes the outcome and populates the marks model. If the 
+        marks model has a value in it for the model, this is not overwritten.
+
+        The outcome does not need to be from the outcomes model as the `value`
+        is ignored-instead, it can come from the stages.
+
+        Arguments:
+        stage_id -- The stage identifier for the outcome.
+        outcome_id -- The unique outcome identifier.
+        outcome -- An outcome object containing an `all_values` value, which is 
+            a list of (str, float)
+        """
         for mark_id, value in enumerate(outcome['all_values']):
             mark_id = str(mark_id)
             mark    = value[1]
@@ -60,6 +62,20 @@ class Controller(controller.BaseController):
                 self.marks[stage_id][outcome_id] = {mark_id: mark}
 
     def _create_marks_model_single(self, stage_id, outcome_id, outcome):
+        """Populate the marks model for a specific outcome that is a question 
+        where there is only one values/score awarded per submission. Takes the 
+        outcome and populates the marks model. If the marks model has a value 
+        in it for the model, this is not overwritten.
+
+        The outcome does not need to be from the outcomes model as the `value`
+        is ignored-instead, it can come from the stages.
+
+        Arguments:
+        stage_id -- The stage identifier for the outcome.
+        outcome_id -- The unique outcome identifier.
+        outcome -- An outcome object containing an `all_values` value, which is 
+            a list of (str, float)
+        """
         if outcome['user_input']:
             # user inputs are scaled, so have a factor/value of 1.0
             mark = 1.0
@@ -74,6 +90,15 @@ class Controller(controller.BaseController):
         self.marks[stage_id][outcome_id] = mark
 
     def set_mark(self, stage_id, outcome_id, mark_id, mark):
+        """Set a mark in the marks model.
+
+        Arguments:
+        stage_id -- The stage identifier for the outcome.
+        outcome_id -- The unique outcome identifier.
+        mark_id -- The unique identifier for the mark (only used in questions 
+            where there are a range of possible values, set to None otherwise)
+        mark -- The mark to award.
+        """
         mark_id = str(mark_id)
         if mark_id is None:
             self.model.marks[stage_id][outcome_id] = mark
@@ -85,29 +110,36 @@ class Controller(controller.BaseController):
                 self.model.marks[stage_id][outcome_id] = mark
             except AttributeError:
                 # mark_id doesn't exist
-                self.model.marks[stage_id][outcome_id][mark_id] = {}
+                self.model.marks[stage_id][outcome_id] = {}
                 self.model.marks[stage_id][outcome_id][mark_id] = mark
 
         self.view.update_marks()
 
     def execute_first_stage(self):
+        """Execute the first stage in the list. This is the callback function
+        from the UI, which the UI should trigger when it has loaded.
+        """
         if self._next_stage_id is not None:
             return
 
         self.execute_stage(self.stages_ids[0])
 
     def select_stage(self, stage_id):
-        """
-        Select a stage always.
+        """Select a stage, updating the UI, and then execute it.
+
+        Arguments:
+        stage_id -- Stage identifier of the stage to execute.
         """
         stage_info = self.stages[stage_id]
         self.view.show_stage(stage_id, stage_info.label)
         self.execute_stage(stage_id)
 
     def execute_stage(self, stage_id=None):
-        """
-        Execute a stage if it hasn't been executed yet and is ready for
-        execution.
+        """Execute a stage if it hasn't been executed yet.
+        
+        Keyword arguments:
+        stage_id -- Stage to execute, or the next valid stage if None is 
+            provided
         """
         if stage_id not in self.stages:
             raise stage.StageError(f'The id {stage_id} does not correspond to' +
@@ -154,5 +186,9 @@ class Controller(controller.BaseController):
         self.set_stage_output(self.current_stage[0], output)
 
     def save_and_close(self):
+        """Save the model to permanent storage and close the application.
+        
+        Ensures marks are saved.
+        """
         self.model.save(True)
         self.view.quit()

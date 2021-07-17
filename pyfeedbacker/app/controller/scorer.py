@@ -1,35 +1,28 @@
 # -*- coding: utf-8 -*-
 
 from . import controller
-from .. import config, stage
+from .. import stage
 from ..view import urwid as view
 
-from collections import OrderedDict
-
-import abc
-import importlib
-import os
-import sys
 import threading
 
 
 
 class Controller(controller.BaseController):
-
     def __init__(self, submission):
-        """
-        Controller for scoring a submission by a student and generating scores
-        and feedback, separated by 'stages'.
+        """Controller for scoring a submission by a student and generating scores and feedback, separated by 'stages'.
         """
         super().__init__()
 
         self.submission      = submission
 
     def set_model(self, model):
-        """
-        Set the model that'll store information about a submission
+        """Set the model that'll store information about a submission
         and then store outcomes from the scoring and feedback for the
-        submission
+        submission.
+
+        Arguments:
+        model -- Root model.
         """
         super().set_model(model)
 
@@ -39,6 +32,14 @@ class Controller(controller.BaseController):
         return self
 
     def execute_first_stage(self):
+        """Execute the first stage in the list. This is the callback function
+        from the UI, which the UI should trigger when it has loaded.
+
+        If the user is runnign the scorer application for a submission that has
+        already been scored, instead of the stage being executed, they'll be
+        given a prompt asking whether they want to continue with the existing
+        scores or start again.
+        """
         self.view.set_score(self.outcomes.sum)
 
         if self._next_stage_id is not None:
@@ -55,6 +56,14 @@ class Controller(controller.BaseController):
             self._execute_first_stage()
 
     def _on_keep_existing_scores_response(self, response):
+        """Callback function on when the user runs the scorer application
+        for a submission that already has scores in the model.
+        
+        This will execute the first stage.
+
+        Arguments:
+        response -- Text of the button label selected by the user.
+        """
         if response == 'Start again':
             self.feedbacks.clear()
             self.outcomes.clear()
@@ -62,23 +71,40 @@ class Controller(controller.BaseController):
         self._execute_first_stage()
 
     def _execute_first_stage(self):
+        """Execute the first stage in the application."""
         self._next_stage_id = self.stages_ids[0]
         self.execute_stage(self._next_stage_id)
 
     def set_feedback(self, stage_id, feedback_id, value):
+        """Set a feedback value in the model.
+        
+        Arguments:
+        stage_id -- The stage identifier for the feedback.
+        feedback_id -- An identifier for the feedback that is unique per stage.
+        value -- A string value of the feedback.
+        """
         self.feedbacks[stage_id][feedback_id] = value
 
     def set_outcome(self, stage_id, outcome_id, outcome):
+        """Set an outcome value in the model.
+        
+        Arguments:
+        stage_id -- The stage identifier for the outcome.
+        outcome_id -- An identifier for the outcome that is unique per stage.
+        outcome -- Outcome object to save to the model.
+        """
         self.outcomes[stage_id][outcome_id] = outcome
 
         self.view.set_score(self.outcomes.sum)
 
     def select_stage(self, stage_id):
-        """
-        Select a stage and:
+        """Select a stage and:
         1) if it hasn't been executed, and
         2) everything before it has been executed
         then it will be executed
+        
+        Keyword arguments:
+        stage_id -- Stage to show and maybe execute.
         """
         stage_info = self.stages[stage_id]
 
@@ -92,10 +118,12 @@ class Controller(controller.BaseController):
                 pass
             self.view.show_stage(stage_id, stage_info.label)
 
-    def execute_stage(self, stage_id=None):
-        """
-        Execute a stage if it hasn't been executed yet and is ready for
-        execution.
+    def execute_stage(self, stage_id = None):
+        """Execute a stage if it hasn't been executed yet.
+        
+        Keyword arguments:
+        stage_id -- Stage to execute, or the next valid stage if None is 
+            provided
         """
         if stage_id not in self.stages:
             raise stage.StageError(f'The id {stage_id} does not correspond to' +
@@ -175,6 +203,13 @@ class Controller(controller.BaseController):
             thread.start()
 
     def _execute_stage(self, instance):
+        """Function to execute a stage that should be called from a background
+        thread.
+        
+        Arguments:
+        instance -- Subclass of HandlerBase that contains the main code for the
+            stage.
+        """
         result = instance.run()
         if result:
             try:
@@ -183,6 +218,12 @@ class Controller(controller.BaseController):
                 self.view.show_alert('Error', str(se))
 
     def refresh_stage(self, stage_id):
+        """Refresh a stage's output.
+        
+        Arguments:
+        stage_id -- Stage to request to provide an updated output.
+            provided
+        """
         if stage_id not in self.stages_handlers:
             raise stage.StageIgnorableError('Stage has not yet executed.')
 
@@ -191,7 +232,21 @@ class Controller(controller.BaseController):
         self.set_stage_output(stage_id, instance.output)
 
     def report(self, result, stage_id=None, stage_info=None):
-        """Report a stage result to the UI"""
+        """Handle the report generated when a stage completes execution and 
+        process it.
+
+        If auto progression is enabled, the next stage will then be selected.
+        
+        Arguments:
+        result -- A StageResult instance.
+        
+        Keyword arguments:
+        stage_id -- Stage providing the report, if one isn't provided it is
+            assumed to be the current stage.
+        stage_info -- Stage info object for the stage providing the report,
+            one will be retrieved for the current stage if one isn't provided.
+            provided
+        """
         if stage_id is None or stage_info is None:
             stage_id   = self.current_stage[0]
             stage_info = self.current_stage[1]

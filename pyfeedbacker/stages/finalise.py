@@ -19,10 +19,12 @@ class StageFinalise(stage.HandlerEditText):
         self._feedback = self.model.feedbacks[self.submission]
 
         self.output = stage.OutputEditText(self._feedback.dict)
-        self.output.set_callback(self.set_value)
-        self.skip_empty = True
+        self.output.callback = self.set_value
+        self.output.skip_empty = True
+
         result = stage.StageResult(stage.StageResult.RESULT_PASS)
         result.set_output(self.output)
+
         return result
 
     def refresh(self):
