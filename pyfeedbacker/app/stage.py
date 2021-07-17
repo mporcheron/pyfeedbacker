@@ -176,13 +176,20 @@ class HandlerBase:
         self._dir_temp        = config.ini['app']['dir_temp']
         self._dir_submissions = config.ini['app']['dir_submissions']
 
-    def add_outcome(self, outcome_id, key = None, explanation = None, value = None, all_values = None):
+    def add_outcome(self,
+                    outcome_id,
+                    key = None,
+                    explanation = None,
+                    value = None,
+                    all_values = None,
+                    user_input = False):
         self.outcomes[outcome_id] = outcomes.Outcome(
             outcome_id  = outcome_id,
             key         = key,
             explanation = explanation,
             value       = value,
-            all_values  = all_values)
+            all_values  = all_values,
+            user_input  = user_input)
 
     def update_ui(self):
         """
@@ -303,7 +310,8 @@ class HandlerForm(HandlerBase):
                     
                 self.add_outcome(
                     outcome_id  = num,
-                    explanation = f'{text} ({score_min}–{score_max})')
+                    explanation = f'{text} ({score_min}–{score_max})',
+                    user_input  = True)
 
 
 

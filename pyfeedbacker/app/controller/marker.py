@@ -22,6 +22,17 @@ class Controller(controller.BaseController):
         """
         super().__init__()
 
+    def set_model(self, model):
+        """
+        Set the model that'll store information about all submissions.
+        """
+        super().set_model(model)
+
+        self.marks     = model.marks
+        self.outcomes  = model.outcomes
+
+        return self
+
     def set_view(self, model):
         """
         Set the view that will handle the entire interface for the
@@ -30,6 +41,37 @@ class Controller(controller.BaseController):
         super().set_view(model)
         self.view.update_marks()
         return self
+
+    def _create_marks_model_scale(self, stage_id, outcome_id, outcome):
+        for mark_id, value in enumerate(outcome['all_values']):
+            mark_id = str(mark_id)
+            mark    = value[1]
+
+            try:
+                model_value = self.marks[stage_id][outcome_id][mark_id]
+
+                if mark == model_value:
+                    return
+
+                self.marks[stage_id][outcome_id][mark_id] = mark
+            except KeyError:
+                self.marks[stage_id][outcome_id][mark_id] = mark
+            except TypeError:
+                self.marks[stage_id][outcome_id] = {mark_id: mark}
+
+    def _create_marks_model_single(self, stage_id, outcome_id, outcome):
+        if outcome['user_input']:
+            # user inputs are scaled, so have a factor/value of 1.0
+            mark = 1.0
+        else:
+            mark = outcome['value']
+
+        model_value = self.marks[stage_id][outcome_id]
+
+        if mark == model_value:
+            return
+
+        self.marks[stage_id][outcome_id] = mark
 
     def set_mark(self, stage_id, outcome_id, mark_id, mark):
         mark_id = str(mark_id)
@@ -93,6 +135,18 @@ class Controller(controller.BaseController):
             if self.debug:
                 raise e
             return
+
+        # create/refresh marks model
+        for outcome_id, outcome in instance.outcomes.items():
+            # is scale question or not
+            if outcome['all_values'] is None:
+                self._create_marks_model_single(stage_id,
+                                                outcome_id,
+                                                outcome)
+            else:
+                self._create_marks_model_scale(stage_id,
+                                                outcome_id,
+                                                outcome)
 
         output = stage.OutputMarker(self.model, stage_id, instance.outcomes)
 

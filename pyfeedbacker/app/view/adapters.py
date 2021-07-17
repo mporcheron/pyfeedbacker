@@ -348,7 +348,7 @@ class AdapterForm(AdapterBase):
         for score_id, score in enumerate(question.scores):
             checked = False
             try:
-                if int(outcome['key']) == score_id:
+                if outcome['key'] != None and int(outcome['key']) == score_id:
                     checked = True
 
                     outcome = \
@@ -388,7 +388,8 @@ class AdapterForm(AdapterBase):
                 self.required_not_completed.add(question.num)
 
             outcome = outcomes.Outcome(outcome_id  = question_id,
-                                       explanation = question.text)
+                                       explanation = question.text,
+                                       user_input  = True)
             self._possible_outcomes[question_id] = outcome
         else:
             # determine if score is valid, and add feedback if missing
@@ -414,7 +415,8 @@ class AdapterForm(AdapterBase):
                 outcomes.Outcome(outcome_id  = question_id,
                                  key         = None,
                                  explanation = question.text,
-                                 value       = existing_score)
+                                 value       = existing_score,
+                                 user_input  = True)
 
         # generate UI elements
         str_existing_score = '' if existing_score is None \
@@ -680,30 +682,11 @@ class AdapterMarker(AdapterBase):
         self.window.frame.set_focus_path(focus_path)
 
     def _generate_multi_outcome(self, outcome_id, outcome, performance):
-        existing_score = None
-
-        # generate UI elements
         inputs = []
         
         for mark_id, value in enumerate(outcome['all_values']):
             mark = str(value[1])
 
-            # replace value if in model
-            model_value = None
-            try:
-                model_value = self.marks[self.stage_id][outcome_id]\
-                    [str(mark_id)]
-            except:
-                self.marks[self.stage_id][outcome_id] = {str(mark_id): None}
-
-            try:
-                if model_value is None or len(model_value) == 0:
-                    self.set_mark(outcome_id,
-                                mark_id,
-                                float(mark))
-            except TypeError:
-                mark = str(model_value)
-            
             ws = []
             w = urwid.Edit('',
                            mark,
@@ -737,6 +720,7 @@ class AdapterMarker(AdapterBase):
         existing_score = None
         ws = []
 
+        # calculate statistics to show
         num_submissions = performance[outcome_id]
         total_submissions = len(self.model.outcomes)
         try:
@@ -744,22 +728,7 @@ class AdapterMarker(AdapterBase):
         except:
             percent_submissions = 0
         
-        # if value is None, this is an input field without a preset value
-        # therefore scores can be scaled only
-        if outcome['value'] is None:
-            mark = str(1.0)
-        else:
-            mark = str(outcome['value'])
-
-        # replace value if in model
-        model_value = self.marks[self.stage_id][outcome_id]
-        try:
-            if model_value is None or len(model_value) == 0:
-                self.set_mark(outcome_id,
-                            None,
-                            float(mark))
-        except TypeError:
-            mark = str(model_value)
+        mark = str(self.marks[self.stage_id][outcome_id])
 
         # generate UI elements
         w = urwid.Edit('',

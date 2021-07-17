@@ -77,11 +77,31 @@ class Marks(base.Data):
         for outcome_id, score in scores.items():
             try:
                 try:
-                    sum += self[outcome_id][str(score['key'])]
-                except:
-                    sum += self[outcome_id]
-            except KeyError:
-                sum += score
+                    try:
+                        key = str(score['key'])
+
+                        # raise type error if self[outcome_id] is not a list
+                        # raise KeyError if not in it
+                        # raise ValueError if mark not set
+                        key in self[outcome_id]
+                        sum += self[outcome_id][key]
+                    except TypeError:
+                        if score['user_input']:
+                            try:
+                                sum += (score['value'] * self[outcome_id])
+                            except TypeError:
+                                # no weight set
+                                sum += score['value']
+                        else:
+                            sum += self[outcome_id]
+                except KeyError:
+                    sum += score['value']
+            except ValueError:
+                try:
+                    sum += score['value']
+                except TypeError:
+                    # may be a non-scored value
+                    pass
 
         m_max = config.ini[f'stage_{self.stage_id}'].getfloat('mark_max', None)
         if m_max is not None and sum > m_max:

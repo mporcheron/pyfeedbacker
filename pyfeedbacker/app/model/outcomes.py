@@ -130,7 +130,8 @@ class Outcome(dict):
                  key         = None,
                  explanation = None,
                  value       = None,
-                 all_values  = None):
+                 all_values  = None,
+                 user_input  = False):
         super().__init__()
 
         self['outcome_id']  = outcome_id
@@ -138,6 +139,7 @@ class Outcome(dict):
         self['explanation'] = explanation
         self['value']       = value
         self['all_values']  = all_values
+        self['user_input']  = user_input
 
     def __getitem__(self, key):
         key = str(key)
@@ -156,8 +158,9 @@ class Outcome(dict):
     def __float__(self):
         try:
             return float(self['value'])
-        except ValueError:
-            return None
+        except TypeError:
+            outcome_id = self['outcome_id']
+            raise ValueError(f'Value is not set for outcome {outcome_id}')
 
     def __repr__(self):
         return str(f'Outcome({self.key}, {self.value})')
