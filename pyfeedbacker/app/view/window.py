@@ -152,20 +152,22 @@ class Window:
 
     def set_score(self, score):
         self.header.set_score(score)
+        self.update_scores()
 
     def update_scores(self):
         try:
             stats = uf.FooterWidget.Statistics()
-            for submission, stages in self.model.outcomes.items():
-                stats.add_value(stages.sum)
-            self.footer.upate_marks(stats)
+            for submission in self.model.outcomes.values():
+                mark = self.model.marks.sum(submission)
+                stats.add_value(submission.sum)
+            self.footer.set_statistics(stats)
         except TypeError:
             pass
 
     def update_marks(self):
         try:
             stats = uf.FooterWidget.Statistics()
-            for submission_id, submission in self.model.outcomes.items():
+            for submission in self.model.outcomes.values():
                 mark = self.model.marks.sum(submission)
                 stats.add_value(mark)
             self.footer.set_statistics(stats)

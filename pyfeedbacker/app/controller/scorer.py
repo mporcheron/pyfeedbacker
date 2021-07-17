@@ -70,6 +70,7 @@ class Controller(controller.BaseController):
 
     def set_outcome(self, stage_id, outcome_id, outcome):
         self.outcomes[stage_id][outcome_id] = outcome
+
         self.view.set_score(self.outcomes.sum)
 
     def select_stage(self, stage_id):
