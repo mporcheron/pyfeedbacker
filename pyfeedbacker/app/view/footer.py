@@ -161,9 +161,12 @@ class FooterWidget(urwid.WidgetWrap):
                 """)
 
         def _calc_iqr(self):
-            q = statistics.quantiles(self.values, n=4, method='inclusive')
-            iqr = q[2] - q[1]
-            return f'{iqr:.2f}'
+            try:
+                q = statistics.quantiles(self.values, n=4, method='inclusive')
+                iqr = q[2] - q[1]
+                return f'{iqr:.2f}'
+            except statistics.StatisticsError:
+                return '-'
 
         def graph_data(self, showing):
             if showing == FooterWidget.Statistics.GRAPH_SCORES:
