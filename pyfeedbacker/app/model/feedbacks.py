@@ -5,20 +5,33 @@ from . import base
 
 
 
-class StagesFeedback(base.StagesData):
-    def __init__(self):
-        super().__init__(Feedbacks)
+class FeedbackByStage(base.DataByStage):
+    def __init__(self, parent_data_id):
+        """Create a container for storing feedback for each stage in a 
+        submission's scoring process.
+
+        Outcomes is a four level model:
+        Submission -> Stage -> Feedbacks -> Feedback
+        
+        Arguments:
+        parent_data_id -- The identifier of the key in the parent container,
+            which in this case is the submission identifier.
+        """
+        super().__init__(child_data_type = Feedbacks,
+                         parent_data_id  = parent_data_id)
 
         feedback_pre = config.ini['assessment'].get('feedback_pre', False)
         if feedback_pre:
             self['__init']['0'] = feedback_pre
 
     str = property(lambda self:self.__str__(), doc="""
-            Read-only string of the feedback
+            Retrieve a copy of the feedback as a new string.
             """)
 
     def __str__(self):
+        """Retrieve all the feedback combined into a single string."""
         feedback = ''
+
         for stage_feedback in self.values():
             feedback += str(stage_feedback)
             feedback += '\n\n'
@@ -28,37 +41,35 @@ class StagesFeedback(base.StagesData):
 
 
 class Feedbacks(base.Data):
-    def __init__(self, stage_id):
-        super().__init__(stage_id, '')
+    def __init__(self, parent_data_id):
+        """Feedback for a particular stage, organised by a unique feedback ID.
+        
+        Arguments:
+        parent_data_id -- The identifier of the key in the parent container,
+            which in this case is the stage identifier."""
+        super().__init__(child_data_type = str,
+                         parent_data_id  = parent_data_id)
+
+        self.stage_id = parent_data_id
 
     def __setitem__(self, feedback_id, value):
+        """Set a piece of feedback, replacing \\n with \n (as caused by
+        configparser in Python.
+        
+        Arguments:
+        feedback_id -- A unique identifier for this piece of feedback.
+        value -- A string giving feedback on the submission.
+        """
         value = value.replace('\\n', '\n')
         return super().__setitem__(feedback_id, value)
 
-    def __dict__(self):
-        feedbacks = {}
-
-        for key, value in self.items():
-            value = value.strip(' ')
-            feedbacks[key] = value.replace('\\n', '\n')
-
-        return feedbacks
-
-    def __list__(self):
-        feedbacks = []
-
-        for indiv_feedback in self.values():
-            indiv_feedback = indiv_feedback.strip(' ').replace('\\n', '\n')
-            if len(indiv_feedback) > 0:
-                feedbacks.append(indiv_feedback)
-
-        return feedbacks
-
     str = property(lambda self:self.__str__(), doc="""
-            Read-only string of the feedback
+            Retrieve a copy of the feedback as a new string.
             """)
 
     def __str__(self):
+        """Retrieve all the feedback for this stage combined into a single
+        string."""
         feedback = ''
 
         for indiv_feedback in self.values():

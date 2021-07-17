@@ -16,7 +16,7 @@ class StageFinalise(stage.HandlerEditText):
     def run(self):
         self._generate_selective_feedback()
 
-        self._feedback = self.model['feedbacks'][self.submission]
+        self._feedback = self.model.feedbacks[self.submission]
 
         self.output = stage.OutputEditText(self._feedback.dict)
         self.output.set_callback(self.set_value)
@@ -43,7 +43,7 @@ class StageFinalise(stage.HandlerEditText):
                 lowerbound = float(match.group(1))
                 upperbound = float(match.group(2))
 
-                fb_submission = self.model['feedbacks'][self.submission]
+                fb_submission = self.model.feedbacks[self.submission]
                 fb_submission[self.stage_id]['selective'] = str(upperbound)
 
                 if score >= lowerbound and score <= upperbound:

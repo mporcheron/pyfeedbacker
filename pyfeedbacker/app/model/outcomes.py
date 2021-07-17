@@ -5,9 +5,19 @@ from . import base
 
 
 
-class StagesOutcomes(base.StagesData):
-    def __init__(self):
-        super().__init__(Outcomes)
+class OutcomesByStage(base.DataByStage):
+    def __init__(self, parent_data_id):
+        """Create a container for storing outcomes (i.e. scoring) for each stage in a submission's scoring process.
+
+        Outcomes is a four level model:
+        Submission -> Stage -> Outcomes -> Outcome
+        
+        Arguments:
+        parent_data_id -- The identifier of the key in the parent container,
+            which in this case is the submission identifier.
+        """
+        super().__init__(child_data_type = Outcomes,
+                         parent_data_id  = parent_data_id)
 
         score_init = config.ini['assessment'].getfloat('score_init', False)
         if score_init:
@@ -15,10 +25,13 @@ class StagesOutcomes(base.StagesData):
                                           value      = score_init)
 
     sum = property(lambda self:self._calculate_score(), doc="""
-            Read-only total score for the submission as a float.
+            The total score for the submission as a float.
             """)
 
     def _calculate_score(self):
+        """Calculate the total score for this submission, and apply any 
+        configured min/max score bounds.
+        """
         score = 0.0
 
         for value in self.values():
@@ -35,29 +48,22 @@ class StagesOutcomes(base.StagesData):
         return score
 
     def __float__(self):
+        """The total score for the submission as a float."""
         return self._calculate_score()
 
 
 
 class Outcomes(base.Data):
-    def __init__(self, stage_id):
-        super().__init__(stage_id, None)
+    def __init__(self, parent_data_id):
+        """Feedback for a particular stage, organised by a unique feedback ID.
+        
+        Arguments:
+        parent_data_id -- The identifier of the key in the parent container,
+            which in this case is the stage identifier."""
+        super().__init__(child_data_type = Outcome,
+                         parent_data_id  = parent_data_id)
 
-    score_min = property(lambda self:min(self.values(),
-                                         key=lambda outcome: outcome.score),
-        doc="""
-            Read-only minimum score in the outcomes.
-            """)
-
-    score_max = property(lambda self:min(self.values(),
-                                         key=lambda outcome: outcome.score),
-        doc="""
-            Read-only minimum score in the outcomes.
-            """)
-
-    def __getitem__(self, outcome_id):
-        outcome_id = str(outcome_id)
-        return super().__getitem__(outcome_id)
+        self.stage_id = parent_data_id
 
     def __setitem__(self, outcome_id, new_outcome):
         outcome_id = str(outcome_id)
@@ -81,22 +87,12 @@ class Outcomes(base.Data):
             new_outcome['outcome_id'] = outcome_id
             return super().__setitem__(outcome_id, new_outcome)
 
-    def add(self, outcome_id, key, explanation, score):
-        self.__setitem__(outcome_id, Outcome(key, explanation, score))
-
-    def __dict__(self):
-        outcomes = {}
-
-        for key, value in self.items():
-            outcomes[key] = value
-
-        return outcomes
-
     sum = property(lambda self:self._calculate_score(), doc="""
             Read the total score for the submission as a float.
             """)
 
     def _calculate_score(self):
+        """Calculate the total score for a particular stage."""
         score = 0.0
 
         for outcome in self.values():
@@ -116,10 +112,8 @@ class Outcomes(base.Data):
         return score
 
     def __float__(self):
+        """Calculate the total score for a particular stage."""
         return self._calculate_score()
-
-    def __int__(self):
-        return int(self._calculate_score())
 
 
 
@@ -141,21 +135,30 @@ class Outcome(dict):
         self['all_values']  = all_values
         self['user_input']  = user_input
 
-    def __getitem__(self, key):
-        key = str(key)
-        return super().__getitem__(str(key))
-
     def __setitem__(self, key, value):
+        """Set an element in the outcome.
+        
+        Arguments:
+        key -- A key for the element (see `__init__` parameters)
+        value -- A value for the element. If the `key` is 'value', then this
+            value is cast to a float.
+        """
         key = str(key)
         if key == 'value':
             try:
-                super().__setitem__(key, float(value))
+                return super().__setitem__(key, float(value))
             except:
-                super().__setitem__(key, None)
-        else:
-            super().__setitem__(key, value)
+                pass
+
+        super().__setitem__(key, value)
 
     def __float__(self):
+        """Retrieve the value of the outcome as a float, or raise a 
+        ValueError if there is no specific value specified.
+        
+        Raises:
+        ValueError -- if no value is set for the outcom
+        """
         try:
             return float(self['value'])
         except TypeError:
@@ -163,4 +166,4 @@ class Outcome(dict):
             raise ValueError(f'Value is not set for outcome {outcome_id}')
 
     def __repr__(self):
-        return str(f'Outcome({self.key}, {self.value})')
+        return str(f'Outcome({self.outcome_id}, {self.value})')

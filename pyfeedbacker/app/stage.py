@@ -575,7 +575,7 @@ class OutputMarker:
                 performance[outcome_id] = int(0)
 
         # pass thorugh all outcomes
-        for _, stages in self.model['outcomes'].items():
+        for _, stages in self.model.outcomes.items():
             for outcome_id, outcome in stages[self.stage_id].items():
 
                 if outcome['all_values'] is not None:

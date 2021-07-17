@@ -34,10 +34,10 @@ class AdapterNone:
         self.marker_app = isinstance(controller, marker.Controller)
 
         if self.scorer_app:
-            self.feedbacks = model['feedbacks'][controller.submission]
-            self.outcomes  = model['outcomes'][controller.submission]
+            self.feedbacks = model.feedbacks[controller.submission]
+            self.outcomes  = model.outcomes[controller.submission]
         elif self.marker_app:
-            self.marks     = model['marks']
+            self.marks     = model.marks
 
             # initial score
             score_init = config.ini[f'stage_{stage_id}'].getfloat(

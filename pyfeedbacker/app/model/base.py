@@ -6,60 +6,100 @@ import abc
 
 
 
-class StagesData(OrderedDict):
-    def __init__(self, data_type):
+class AbstractModelContainer(OrderedDict):
+    def __init__(self, child_data_type = None, parent_data_id = None):
+        """Base class for storing data by ID. Its expected that any specific 
+        data type will extended this class and provide the data container type through calling `__init__` on `super()`.
+
+        This is essentially an `collections.OrderedDict`.
+
+        Keyword arguments:
+        child_data_type -- A data type that will be stored inside this 
+            container. New data will be initialised to an instance of this type.
+        parent_data_id -- ID of the parent data container, if it exists.
         """
-        Base class for storing all the data for a stage in the model. Its
-        expected that any specific data type will extended this class and
-        provide the data container type through calling __init__ on super()
+        self._child_data_type = child_data_type
+        self._parent_data_id  = parent_data_id
+
+    def __getitem__(self, data_id):
+        """Retrieve an item using the square bracket syntax. If a particular 
+        `data_id` doesn't exist, then one will be created with an initialised
+        value passed into `__init__`.
+
+        Arguments:
+        data_id -- Identifier for a piece of data, will be converted to a 
+            string if it isn't already a string.
         """
-        self._data_type = data_type
-
-    def __getitem__(self, stage_id):
-        stage_id = str(stage_id)
+        data_id = str(data_id)
         try:
-            return super().__getitem__(stage_id)
+            return super().__getitem__(data_id)
         except KeyError:
-            super().__setitem__(stage_id, self._data_type(stage_id))
-            return super().__getitem__(stage_id)
+            if self._child_data_type is None:
+                new_obj = None
+            elif issubclass(self._child_data_type, AbstractModelContainer):
+                new_obj = self._child_data_type(parent_data_id = data_id)
+            else:
+                new_obj = self._child_data_type()
+    
+            self.__setitem__(data_id, new_obj)
+            return new_obj
 
-    def __getattribute__(self, stage_id):
-        stage_id = str(stage_id)
-        try:
-            return super().__getattribute__(stage_id)
-        except AttributeError as ae:
-            try:
-                return super().__getitem__(stage_id)
-            except:
-                raise ae
+    def __setitem__(self, data_id, value):
+        """Set an item using the square bracket syntax.
 
-    def __contains__(self, stage_id):
-        stage_id = str(stage_id)
-        try:
-            return super().__contains__(stage_id)
-        except KeyError:
-            return False
+        Arguments:
+        data_id -- Identifier for a piece of data, will be converted to a 
+            string if it isn't already a string.
+        value -- The value to store in the model.
+        """
+        data_id = str(data_id)
+        return super().__setitem__(data_id, value)
 
-    list = property(lambda self:self.__list__(), doc="""
-            Get a copy of the data as a list.
-            """)
+    def __contains__(self, data_id):
+        """Determine if a particular  `data_id` exists.
 
-    def _get_as_list(self):
-        items = []
-
-        for value in self.values():
-            items += value.list
-
-        return items
-
-    def __list__(self):
-        return self._get_as_list()
+        Arguments:
+        data_id -- Identifier for a piece of data, will be converted to a 
+            string if it isn't already a string.
+        """
+        data_id = str(data_id)
+        return super().__contains__(data_id)
 
     dict = property(lambda self:self.__dict__(), doc="""
-            Get a copy of the data as a dictionary.
+            Retrieve a copy of the data as a new dictionary.
             """)
 
+    @abc.abstractmethod
     def __dict__(self):
+        """Retrieve a copy of the data as a new dictionary."""
+        return dict(self.items())
+
+    def __repr__(self):
+        ret  = f'{self.__class__.__name__}('
+        ret += str(list(self))
+        ret += ')'
+
+        return ret
+
+
+
+class DataByStage(AbstractModelContainer):
+    def __init__(self, child_data_type, parent_data_id):
+        """Create a container for storing data for each stage.
+        
+        Arguments:
+        child_data_type -- A data type that will be stored inside this 
+            container. New data will be initialised to an instance of this type.
+        parent_data_id -- The identifier of the key in the parent container,
+            which in this case is the submission identifier.
+        """
+        super().__init__(child_data_type = child_data_type,
+                         parent_data_id  = parent_data_id)
+
+        self.submission = parent_data_id
+
+    def __dict__(self):
+        """Retrieve a copy of the data as a new dictionary."""
         items = {}
 
         for key, value in self.items():
@@ -69,57 +109,5 @@ class StagesData(OrderedDict):
 
 
 
-class Data(OrderedDict):
-    def __init__(self, stage_id, init_value):
-        """
-        Base data class for the model. Its expected that any specific data
-        type will extended this class and provide an initial/default value
-        through calling __init__ on super()
-        """
-        self.stage_id   = stage_id
-        self.init_value = init_value
-
-    def __getitem__(self, data_id):
-        data_id = str(data_id)
-        try:
-            return super().__getitem__(data_id)
-        except KeyError:
-            super().__setitem__(data_id, self.init_value)
-            return super().__getitem__(data_id)
-
-    def __getattribute__(self, stage_id):
-        stage_id = str(stage_id)
-        try:
-            return super().__getattribute__(stage_id)
-        except AttributeError as ae:
-            try:
-                return super().__getitem__(stage_id)
-            except:
-                raise ae
-
-    def __setitem__(self, data_id, value):
-        data_id = str(data_id)
-        return super().__setitem__(data_id, value)
-
-    def __contains__(self, data_id):
-        data_id = str(data_id)
-        try:
-            return super().__contains__(data_id)
-        except KeyError:
-            return False
-
-    list = property(lambda self:self.__list__(), doc="""
-            Return the data as a list.
-            """)
-
-    @abc.abstractmethod
-    def __list__(self):
-        pass
-
-    dict = property(lambda self:self.__dict__(), doc="""
-            Return the feedbacks as a dict.
-            """)
-
-    @abc.abstractmethod
-    def __dict__(self):
-        pass
+class Data(AbstractModelContainer):
+    pass

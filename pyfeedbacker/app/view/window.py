@@ -57,7 +57,8 @@ class Window:
             self.palette.append(
                 ('title',          '', '', '', 'bold,#0af', 'g93'))
 
-            if config.ini['scorer'].getboolean('enable_footer', False):
+            if config.ini['scorer'].getboolean('enable_footer', False) and \
+                    len(self.model.outcomes) > 0:
                 self.footer = uf.FooterWidget(controller, model, self)
         elif self.view.app == uu.UrwidView.APP_MARKER:
             self.palette.append(
@@ -65,7 +66,8 @@ class Window:
             self.palette.append(
                 ('title',          '', '', '', 'bold,#d06', 'g93'))
 
-            if config.ini['marker'].getboolean('enable_footer', True):
+            if config.ini['marker'].getboolean('enable_footer', True) and \
+                    len(self.model.outcomes) > 0:
                 self.footer = uf.FooterWidget(controller, model, self)
 
         if sidebar is Window.SIDEBAR_STAGES:
@@ -161,7 +163,11 @@ class Window:
             for submission in self.model.outcomes.values():
                 mark = self.model.marks.sum(submission)
                 stats.add_value(submission.sum)
-            self.footer.set_statistics(stats)
+
+            try:
+                self.footer.set_statistics(stats)
+            except AttributeError:
+                pass
         except TypeError:
             pass
 
@@ -171,7 +177,11 @@ class Window:
             for submission in self.model.outcomes.values():
                 mark = self.model.marks.sum(submission)
                 stats.add_value(mark)
-            self.footer.set_statistics(stats)
+
+            try:
+                self.footer.set_statistics(stats)
+            except AttributeError:
+                pass
         except TypeError:
             pass
 

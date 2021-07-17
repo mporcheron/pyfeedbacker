@@ -12,7 +12,7 @@ import os
 
 
 
-class FileSystemModel(model.BaseModel):
+class FileSystemModel(model.Model):
     def __init__(self):
         """
         Store all marking information in CSV, JSON and text files
@@ -29,7 +29,7 @@ class FileSystemModel(model.BaseModel):
                 for submission, stages in json.load(json_file).items():
                     for stage_id, data in stages.items():
                         for score_id, feedback in data.items():
-                            self['feedbacks'][submission][stage_id][score_id] =\
+                            self.feedbacks[submission][stage_id][score_id] =\
                                 feedback
         except json.decoder.JSONDecodeError:
             pass
@@ -49,7 +49,7 @@ class FileSystemModel(model.BaseModel):
                             if outcome is None:
                                 continue
 
-                            self['outcomes'][submission][stage_id][outcome_id]=\
+                            self.outcomes[submission][stage_id][outcome_id]=\
                                 outcome
         except json.decoder.JSONDecodeError:
             pass
@@ -66,7 +66,7 @@ class FileSystemModel(model.BaseModel):
                         if mark is None:
                             continue
 
-                        self['marks'][stage_id][outcome_id] = mark
+                        self.marks[stage_id][outcome_id] = mark
         except json.decoder.JSONDecodeError:
             pass
         except FileNotFoundError:
@@ -79,7 +79,7 @@ class FileSystemModel(model.BaseModel):
     def _get_csv_header(self, marks):
         # calculate mapping
         mapping = OrderedDict()
-        for submission, stages in self['outcomes'].items():
+        for submission, stages in self.outcomes.items():
             for stage_id, stage_scores in stages.items():
                 stage_id = str(stage_id)
 
@@ -185,11 +185,11 @@ class FileSystemModel(model.BaseModel):
     def _save_feedbacks(self, force_finalise=False):
         file_name = config.ini['model_file']['file_feedbacks']
         with open(file_name, 'w') as json_file:
-            json_file.write(json.dumps(self['feedbacks']))
+            json_file.write(json.dumps(self.feedbacks))
 
         if config.ini['assessment'].getboolean('scores_are_marks', False) \
                 or force_finalise:
-            for submission, stages in self['feedbacks'].items():
+            for submission, stages in self.feedbacks.items():
                 path = config.ini['model_file']['file_final_feedback'].replace(
                     '##submission##', submission)
 
@@ -228,7 +228,7 @@ class FileSystemModel(model.BaseModel):
                             config.ini[f'stage_{stage_id}'].getfloat(
                                 'mark_min', None)
 
-                    feedback = str(self['feedbacks'][submission])
+                    feedback = str(self.feedbacks[submission])
                     for key, value in data.items():
                         feedback = feedback.replace(f'##{key}##', str(value))
 
@@ -237,9 +237,9 @@ class FileSystemModel(model.BaseModel):
     def _save_outcomes(self):
         file_name = config.ini['model_file']['file_outcomes']
         with open(file_name, 'w') as json_file:
-            json_file.write(json.dumps(self['outcomes'].dict))
+            json_file.write(json.dumps(self.outcomes.dict))
 
     def _save_outcomes_marks(self):
         file_name = config.ini['model_file']['file_outcomes_marks']
         with open(file_name, 'w') as json_file:
-            json_file.write(json.dumps(self['marks'].dict))
+            json_file.write(json.dumps(self.marks.dict))

@@ -1,41 +1,31 @@
 # -*- coding: utf-8 -*-
 
-from . import base, scores
+from . import base
 from .. import config
 
 
 
-class StagesMarks(base.StagesData):
+class StagesMarks(base.DataByStage):
     def __init__(self):
-        super().__init__(Marks)
+        """Create a container for storing marks (i.e. final mark) for each stage in a submission's scoring process.
 
-    def __dict__(self):
-        marks = {}
-
-        for key, value in self.items():
-            marks[key] = value
-
-        return marks
-
-    def __repr__(self):
-        ret = 'StagesMarks('
-        for key, value in self.items():
-            ret += f'{key}: {value}, '
-        ret += ')'
-
-        return ret
-
-    def sum(self, score_data):
+        Marks is a three level model:
+        Stage -> Marks -> float OR dict (str->float)
         """
-        Calculate the mark for all submissions or a single submission (depends
-        on whether a StagesScores or Scores is passed in)
-        """
-        if isinstance(score_data, scores.Scores):
-            return self[scores.stage_id].sum(scores)
+        super().__init__(child_data_type = Marks,
+                         parent_data_id  = None)
 
+    def sum(self, outcomes_for_submission):
+        """Calculate the mark for a submission by passing in an outcomes model of its scores. Applies any mix/max mark rules specified in the 
+        configuration.
+
+        Arguments:
+        outcomes_for_submission -- An object containing a single submission's
+            outcomes
+        """
         sum = 0.0
 
-        for stage_id, scores_data in score_data.items():
+        for stage_id, scores_data in outcomes_for_submission.items():
             try:
                 sum += self[stage_id].sum(scores_data)
             except TypeError:
@@ -54,52 +44,53 @@ class StagesMarks(base.StagesData):
 
 
 class Marks(base.Data):
-    def __init__(self, outcome_id):
-        super().__init__(outcome_id, None)
+    def __init__(self, parent_data_id):
+        """Marks for a particular stage's outcomes, organise by the outcome 
+        identifier.
+        
+        Arguments:
+        parent_data_id -- The identifier of the key in the parent container,
+            which in this case is the stage identifier."""
+        super().__init__(child_data_type = None,
+                         parent_data_id  = parent_data_id)
 
-    def __getitem__(self, outcome_id):
-        outcome_id = str(outcome_id)
-        return super().__getitem__(outcome_id)
+        self.stage_id = parent_data_id
 
-    def __setitem__(self, outcome_id, mark):
-        outcome_id = str(outcome_id)
-        return super().__setitem__(outcome_id, mark)
+    def sum(self, outcomes_for_stage):
+        """Calculate the mark for a stage by passing in an outcomes model of its scores. Applies any mix/max mark rules specified in the 
+        configuration.
 
-    def __dict__(self):
-        marks = {}
-
-        for key, value in self.items():
-            marks[key] = value
-
-    def sum(self, scores):
+        Arguments:
+        outcomes_for_stage -- An object containing a single submission's
+            outcomes for a specific stage
+        """
         sum = 0.0
 
-        for outcome_id, score in scores.items():
+        for outcome_id, outcome in outcomes_for_stage.items():
             try:
                 try:
                     try:
-                        key = str(score['key'])
+                        key = str(outcome['key'])
 
                         # raise type error if self[outcome_id] is not a list
                         # raise KeyError if not in it
                         # raise ValueError if mark not set
-                        key in self[outcome_id]
                         value = self[outcome_id][key]
                         sum += value
                     except TypeError:
-                        if score['user_input']:
+                        if outcome['user_input']:
                             try:
-                                sum += (score['value'] * self[outcome_id])
+                                sum += (outcome['value'] * self[outcome_id])
                             except TypeError:
                                 # no weight set
-                                sum += score['value']
+                                sum += outcome['value']
                         else:
                             sum += self[outcome_id]
                 except KeyError:
-                    sum += score['value']
+                    sum += outcome['value']
             except ValueError:
                 try:
-                    sum += score['value']
+                    sum += outcome['value']
                 except TypeError:
                     # may be a non-scored value
                     pass
@@ -116,11 +107,3 @@ class Marks(base.Data):
             sum = m_min
 
         return sum
-
-    def __repr__(self):
-        ret = '['
-        for key, value in self.items():
-            ret += f'({key}, {value}), '
-        ret += ']'
-
-        return ret
