@@ -310,8 +310,13 @@ class AdapterForm(AdapterBase):
             if question.required:
                 self.required_not_completed.add(question.num)
 
-            outcome = outcomes.Outcome(outcome_id = '?',
-                                       explanation = question.text)
+            all_values = []
+            for score_id, score in enumerate(question.scores):
+                all_values.append((question.scale[score_id], score))
+
+            outcome = outcomes.Outcome(outcome_id  = '?',
+                                       explanation = question.text,
+                                       all_values  = all_values)
             self._possible_outcomes[question_id] = outcome
         else:
             outcome_value = float(outcome['value'])
@@ -339,7 +344,6 @@ class AdapterForm(AdapterBase):
             if outcome['key'] not in question.feedback:
                 feedback = question.feedback[outcome['key']]
                 self.set_feedback(question.num, feedback)
-
 
         # generate UI elements
         score_max = '/' + str(max(question.scores))
