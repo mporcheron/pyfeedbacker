@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from app.controller import scorer, marker
-from app.model import fs as model
-from app.view import urwid as view
+from .app.controller import scorer, marker
+from .app.model import fs as model
+from .app.view import urwid as view
 
 
 
