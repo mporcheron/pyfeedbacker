@@ -37,7 +37,7 @@ class AdapterNone:
             self.feedbacks = model['feedbacks'][controller.submission]
             self.outcomes  = model['outcomes'][controller.submission]
         elif self.marker_app:
-            self.marks   = model['marks']
+            self.marks     = model['marks']
 
             # initial score
             score_init = config.ini[f'stage_{stage_id}'].getfloat(
@@ -503,7 +503,7 @@ class AdapterForm(AdapterBase):
             outcome = self._possible_outcomes[question_id]
             outcome['key']   = score_id
             outcome['value'] = score
-            outcome['all_values'] = question.scale
+            # outcome['all_values'] = question.scale
 
             self.set_feedback(question.num, feedback)
             self.set_outcome(question.num, outcome)
@@ -685,7 +685,8 @@ class AdapterMarker(AdapterBase):
         inputs = []
         
         for mark_id, value in enumerate(outcome['all_values']):
-            mark = str(value[1])
+            mark_id_str = str(mark_id)
+            mark = str(self.marks[self.stage_id][outcome_id][mark_id_str])
 
             ws = []
             w = urwid.Edit('',
@@ -694,7 +695,7 @@ class AdapterMarker(AdapterBase):
             urwid.connect_signal(w,
                                 'postchange',
                                 self._on_edit_change,
-                                (outcome_id, mark_id))
+                                (outcome_id, mark_id_str))
             w = urwid.AttrMap(w, 'edit', 'edit selected')
             ws.append(w)
 

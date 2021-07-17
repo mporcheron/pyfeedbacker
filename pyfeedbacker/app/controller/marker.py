@@ -50,8 +50,8 @@ class Controller(controller.BaseController):
             try:
                 model_value = self.marks[stage_id][outcome_id][mark_id]
 
-                if mark == model_value:
-                    return
+                if model_value is not None:
+                    continue
 
                 self.marks[stage_id][outcome_id][mark_id] = mark
             except KeyError:
@@ -68,7 +68,7 @@ class Controller(controller.BaseController):
 
         model_value = self.marks[stage_id][outcome_id]
 
-        if mark == model_value:
+        if model_value is not None:
             return
 
         self.marks[stage_id][outcome_id] = mark
