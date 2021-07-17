@@ -575,12 +575,13 @@ class OutputMarker:
                 performance[outcome_id] = int(0)
 
         # pass thorugh all outcomes
-        for submission, stages in self.model['outcomes'].items():
+        for _, stages in self.model['outcomes'].items():
             for outcome_id, outcome in stages[self.stage_id].items():
 
-                if outcome['all_values']:
+                if outcome['all_values'] is not None:
                     key = int(outcome['key'])
                     key = list(outcome['all_values'])[key]
+                    key = key[0]
                     try:
                         performance[outcome_id][key] += 1
                     except KeyError:
