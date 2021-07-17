@@ -75,6 +75,9 @@ class TabbleColumns(urwid.Columns):
         self._command_map['tab']       = 'cursor right'
         self._command_map['shift tab'] = 'cursor left'
 
+    def keypress(self, size, key):
+        super().keypress(size, key)
+
 
 
 class EscableListBox(urwid.ListBox):
