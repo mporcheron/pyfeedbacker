@@ -19,10 +19,13 @@ class OutcomesByStage(base.DataByStage):
         super().__init__(child_data_type = Outcomes,
                          parent_data_id  = parent_data_id)
 
-        score_init = config.ini['assessment'].getfloat('score_init', False)
-        if score_init:
-            self['__init']['0'] = Outcome(outcome_id = '0',
-                                          value      = score_init)
+        try:
+            score_init = config.ini['assessment'].getfloat('score_init', False)
+            if score_init:
+                self['__init']['0'] = Outcome(outcome_id = '0',
+                                            value      = score_init)
+        except KeyError:
+            pass
 
     sum = property(lambda self:self._calculate_score(), doc="""
             The total score for the submission as a float.
@@ -37,13 +40,19 @@ class OutcomesByStage(base.DataByStage):
         for value in self.values():
             score += value.sum
 
-        s_max = config.ini[f'assessment'].getfloat('score_max', None)
-        if s_max is not None and score > s_max:
-            score = s_max
+        try:
+            s_max = config.ini[f'assessment'].getfloat('score_max', None)
+            if s_max is not None and score > s_max:
+                score = s_max
+        except KeyError:
+            pass
 
-        s_min = config.ini[f'assessment'].getfloat('score_min', None)
-        if s_min is not None and score < s_min:
-            score = s_min
+        try:
+            s_min = config.ini[f'assessment'].getfloat('score_min', None)
+            if s_min is not None and score < s_min:
+                score = s_min
+        except KeyError:
+            pass
 
         return score
 
@@ -67,6 +76,14 @@ class Outcomes(base.Data):
 
     def __setitem__(self, outcome_id, new_outcome):
         outcome_id = str(outcome_id)
+        
+        try:
+            existing_index = list(self.values()).index(new_outcome)
+            existing_key = list(self.keys())[existing_index]
+            del self[existing_key]
+        except:
+            pass
+        
         if outcome_id in self:
             outcome = self[outcome_id]
             if new_outcome['outcome_id'] != outcome['outcome_id']:
@@ -101,13 +118,21 @@ class Outcomes(base.Data):
             except:
                 pass
 
-        s_max = config.ini[f'stage_{self.stage_id}'].getfloat('score_max', None)
-        if s_max is not None and score > s_max:
-            score = s_max
+        try:
+            s_max = config.ini[f'stage_{self.stage_id}'].getfloat(
+                'score_max', None)
+            if s_max is not None and score > s_max:
+                score = s_max
+        except KeyError:
+            pass
 
-        s_min = config.ini[f'stage_{self.stage_id}'].getfloat('score_min', None)
-        if s_min is not None and score < s_min:
-            score = s_min
+        try:
+            s_min = config.ini[f'stage_{self.stage_id}'].getfloat(
+                'score_min', None)
+            if s_min is not None and score < s_min:
+                score = s_min
+        except KeyError:
+            pass
 
         return score
 

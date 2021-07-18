@@ -8,6 +8,7 @@ import copy
 
 class ConfigWrapper:
     def __init__(self):
+        self.clear()
         self.reset()
 
     def __getitem__(self, key):
@@ -16,8 +17,10 @@ class ConfigWrapper:
     def __getattr__(self, attr):
         return self.ini.__getattribute__(attr)
 
-    def reset(self):
+    def clear(self):
         self.ini = configparser.ConfigParser()
+
+    def reset(self):
         self.ini.read('config.ini')
 
 
