@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .. import config, stage
-from ..controller import scorer, marker
+from pyfeedbacker.app import config
+from pyfeedbacker.app.controller import scorer, marker
 
 import urwid
 

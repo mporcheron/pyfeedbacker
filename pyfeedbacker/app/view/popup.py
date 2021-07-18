@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from . import widgets as uw
+from pyfeedbacker.app.view import widgets as uw
 
 from math import lcm
 

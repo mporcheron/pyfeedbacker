@@ -1,15 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .. import config, stage
-from . import adapters as ua
-from . import header as uh
-from . import footer as uf
-from . import sidebar as us
-from . import popup as up
-from . import urwid as uu
-from . import widgets as uw
-
-from math import lcm
+from pyfeedbacker.app import config, stage
+from pyfeedbacker.app.view import adapters as ua, header as uh, footer as uf
+from pyfeedbacker.app.view import sidebar as us, popup as up, urwid as uu
+from pyfeedbacker.app.view import widgets as uw
 
 import urwid
 import signal

@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .. import stage
-from . import adapters as ua
-from . import urwid as uu
-from . import widgets as uw
+from pyfeedbacker.app import stage
+from pyfeedbacker.app.view import adapters as ua, urwid as uu, widgets as uw
 
 import urwid
 

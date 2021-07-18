@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import config, stage
+from pyfeedbacker.app import config, stage
 
 import abc
 

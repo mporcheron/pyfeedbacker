@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from .. import config, stage
-from ..model import outcomes
-from ..controller import scorer, marker
-from . import widgets as uw
+from pyfeedbacker.app import config, stage
+from pyfeedbacker.app.model import outcomes
+from pyfeedbacker.app.view import widgets as uw
+from pyfeedbacker.app.controller import scorer, marker
 
 import urwid
 

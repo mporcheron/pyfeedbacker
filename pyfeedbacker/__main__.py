@@ -3,8 +3,6 @@
 import argparse
 import pyfeedbacker
 
-
-
 parser = argparse.ArgumentParser(description = 'pyfeedbacker')
 
 parser.add_argument(

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from app import config, stage
-from app.controller import marker
+from pyfeedbacker.app import config, stage
 
 import os
 import shutil

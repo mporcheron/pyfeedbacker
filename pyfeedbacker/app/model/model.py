@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from .. import config
-from . import feedbacks, outcomes, marks
+from pyfeedbacker.app.model import feedbacks, outcomes, marks
 
 from collections import OrderedDict
 

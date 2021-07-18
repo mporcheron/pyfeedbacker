@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from urwid.widget import EditError
-from .model import outcomes
-from . import config
-
-from collections import OrderedDict
+from pyfeedbacker.app import config
+from pyfeedbacker.app.model import outcomes
 
 import abc
 import importlib
@@ -61,7 +58,7 @@ class StageInfo:
 
         # import the stage class
         try:
-            module = importlib.import_module('stages.' + stage_id, '..')
+            module = importlib.import_module('pyfeedbacker.stages.' + stage_id)
             self.handler = getattr(module, class_name)
 
             if handler == 'HandlerNone':
@@ -71,9 +68,9 @@ class StageInfo:
 
             self.selectable = True
         except ModuleNotFoundError:
-            print('No file/module called ' +
+            print('No or invalid file/module called ' +
                   stage_id +
-                  '.py in stages/ directory')
+                  '.py in stages/ directory. If file exists, check imports.')
             self.handler    = HandlerNone
             self.state      = StageInfo.STATE_FAILED
             self.selectable = False

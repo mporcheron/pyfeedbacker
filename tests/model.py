@@ -1,12 +1,17 @@
+# -*- coding: utf-8 -*-
+
 import unittest
 
-from pyfeedbacker.app.model import *
+from pyfeedbacker.app.model import outcomes
 
 
 
 class TestOutcomesModel(unittest.TestCase):
 
     def test_outcome_fixed(self):
+        """Test that a fixed outcome (i.e., a pass or fail) that is 
+        programatically determined can be set and retrieved.
+        """
         OUTCOME_ID_1  = 'outcome_id_1'
         KEY_1         = None
         EXPLANATION_1 = 'A sample explanation'
@@ -29,6 +34,9 @@ class TestOutcomesModel(unittest.TestCase):
         self.assertEqual(obj['user_input'],  USER_INPUT_1)
 
     def test_outcome_scale(self):
+        """Test that a scale outcome (i.e., a number of fixed options) that is 
+        user determined can be set and retrieved.
+        """
         OUTCOME_ID_2  = 'outcome_id_2'
         KEY_2         = 1
         EXPLANATION_2 = 'A sample explanation'
@@ -51,6 +59,9 @@ class TestOutcomesModel(unittest.TestCase):
         self.assertEqual(obj['user_input'],  USER_INPUT_2)
 
     def test_outcome_input(self):
+        """Test that a inpput outcome that a user types the input can be set 
+        and retrieved.
+        """
         OUTCOME_ID_3  = 'outcome_id_3'
         KEY_3         = None
         EXPLANATION_3 = 'A sample explanation'
@@ -73,6 +84,8 @@ class TestOutcomesModel(unittest.TestCase):
         self.assertEqual(obj['user_input'],  USER_INPUT_3)
 
     def test_outcome_setitem(self):
+        """Test that updating of the data within an existing outcome works.
+        """
         OUTCOME_ID_1  = 'outcome_id_1'
         KEY_1         = None
         EXPLANATION_1 = 'A sample explanation'
@@ -98,10 +111,15 @@ class TestOutcomesModel(unittest.TestCase):
         obj['value']  = VALUE_1
         self.assertEqual(obj['value'],       VALUE_1)
 
-    def test_outcome_float_float(self):
-        # value should be stored as float or None
-        # converting object to float will give the value as float or ValueError
+        EXPLANATION_1       = 'A sample updated explanation'
+        obj['explanation']  = EXPLANATION_1
+        self.assertEqual(obj['explanation'],  EXPLANATION_1)
 
+    def test_outcome_float_float(self):
+        """Test that updating of the value will be converted to either a float. 
+        Converting object to float will store the value as float or raise a 
+        ValueError.
+        """
         OUTCOME_ID_1  = 'outcome_id_1'
         KEY_1         = None
         EXPLANATION_1 = 'A sample explanation'

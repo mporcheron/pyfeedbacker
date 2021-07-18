@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from . import controller
-from .. import stage
-from ..view import urwid as view
+from pyfeedbacker.app import stage
+from pyfeedbacker.app.view import urwid as view
+from pyfeedbacker.app.controller import base
 
 import threading
 
 
 
-class Controller(controller.BaseController):
+class Controller(base.BaseController):
     def __init__(self, submission):
         """Controller for scoring a submission by a student and generating scores and feedback, separated by 'stages'.
         """

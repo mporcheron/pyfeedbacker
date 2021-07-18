@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from ..view import window
+from pyfeedbacker.app.view import window as uw
+
 from ..controller import scorer, marker
 
 
@@ -25,10 +26,10 @@ class UrwidView:
             raise AttributeError('Unknown app controller')
 
         self.model      = model
-        self.window     = window.Window(controller,
-                                        model,
-                                        self,
-                                        window.Window.SIDEBAR_STAGES)
+        self.window     = uw.Window(controller,
+                                    model,
+                                    self,
+                                    uw.Window.SIDEBAR_STAGES)
 
     def run(self):
         self.window.run()

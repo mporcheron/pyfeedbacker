@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .. import config
-from .. import stage
-from . import model
+from pyfeedbacker.app import config
+from pyfeedbacker.app.model import model
 
 from collections import OrderedDict
 

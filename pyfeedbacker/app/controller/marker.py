@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
-from . import controller
-from .. import stage
+from pyfeedbacker.app import stage
+from pyfeedbacker.app.controller import base
 
 
 
-class Controller(controller.BaseController):
+class Controller(base.BaseController):
     def __init__(self):
         """Controller for creating marks for all the submission components, and 
         thus each submission's mark. Generates final feedback too.

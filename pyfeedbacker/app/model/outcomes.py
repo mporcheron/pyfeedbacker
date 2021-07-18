@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from .. import config
-from . import base
+from pyfeedbacker.app import config
+from pyfeedbacker.app.model import base
 
 
 
