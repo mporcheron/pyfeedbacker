@@ -5,22 +5,19 @@ from pyfeedbacker.app.model import model
 
 from collections import OrderedDict
 
-import csv
 import json
-import os
 
 
 
 class FileSystemModel(model.Model):
     def __init__(self):
-        """
-        Store all marking information in CSV, JSON and text files
-        """
+        """Store all marking information in CSV, JSON and text files."""
         super().__init__()
 
         self._load_raw_data()
 
     def _load_raw_data(self):
+        """Load the data from the JSON files."""
         # load feedbacks
         try:
             file_feedbacks = config.ini['model_file']['file_feedbacks']
@@ -72,10 +69,26 @@ class FileSystemModel(model.Model):
             pass
 
     def _get_csv_title(self, marks):
+        """Generate the first row of the CSV file.
+        
+        Arguments:
+        marks -- True if this is the marks output, otherwise this is for the 
+            scores CSV.
+        """
         return config.ini['app']['name'] + \
                (' marks' if marks else ' scores')
 
     def _get_csv_header(self, marks):
+        """Generate the full header of the CSV for scores/marks. Generates
+        three rows:
+        1) a title row
+        2) a row listing stages
+        3) a listing each outcome ID
+        
+        Arguments:
+        marks -- True if this is the marks output, otherwise this is for the 
+            scores CSV.
+        """
         # calculate mapping
         mapping = OrderedDict()
         for submission, stages in self.outcomes.items():
@@ -108,12 +121,27 @@ class FileSystemModel(model.Model):
         return [title_header_str, stage_header_str, score_header_str, mapping]
 
     def save(self, force_finalise=False):
+        """Save all the feedbacks, outcomes, and outcomes marks to JSON files 
+        and the scores and marks per submission to CSV. Feedbacks can also be
+        saved to text files, one per submission.
+        
+        Keyword arguments:
+        force_finalise -- Forces the saving of marks per submission to CSV files
+            and feedbacks to individual text files if True.
+        """
         self._save_scores(force_finalise=force_finalise)
         self._save_feedbacks(force_finalise=force_finalise)
         self._save_outcomes()
         self._save_outcomes_marks()
 
     def _save_scores(self, force_finalise=False, save_marks=False):
+        """Save scores, and optionally marks, to CSV files.
+        
+        Keyword arguments:
+        force_finalise -- Forces the saving of marks to a separate CSV file
+            if True.
+        save_marks -- Only save marks to a CSV file, not scores, if True.
+        """
         file_name = config.ini['model_file']['file_scores']
         if save_marks:
             file_name = config.ini['model_file']['file_marks']
@@ -182,6 +210,13 @@ class FileSystemModel(model.Model):
             self._save_scores(False, True)
 
     def _save_feedbacks(self, force_finalise=False):
+        """Save the feedbacks model to a JSON file, and optionally generate
+        individual text files per submission.
+        
+        Keyword arguments:
+        force_finalise -- Forces the saving of feedbacks to individual text 
+            files if True.
+        """
         file_name = config.ini['model_file']['file_feedbacks']
         with open(file_name, 'w') as json_file:
             json_file.write(json.dumps(self.feedbacks))
@@ -234,11 +269,13 @@ class FileSystemModel(model.Model):
                     f.write(feedback)
 
     def _save_outcomes(self):
+        """Save the outcomes model to a JSON file."""
         file_name = config.ini['model_file']['file_outcomes']
         with open(file_name, 'w') as json_file:
             json_file.write(json.dumps(self.outcomes.dict))
 
     def _save_outcomes_marks(self):
+        """Save the outcomes marks model to a JSON file."""
         file_name = config.ini['model_file']['file_outcomes_marks']
         with open(file_name, 'w') as json_file:
             json_file.write(json.dumps(self.marks.dict))
