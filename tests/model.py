@@ -383,6 +383,54 @@ class TestOutcomesModel(unittest.TestCase):
         self.assertEqual(float(obs), expected_sum)
 
 
+
+class TestFeedbacksModel(unittest.TestCase):
+    FEEDBACK_ID_1  = 'feedback_id_1'
+    KEY_1         = None
+    EXPLANATION_1 = 'A sample explanation'
+    VALUE_1       = 1.0
+    ALL_VALUES_1  = None
+    USER_INPUT_1  = False
+
+    FEEDBACK_ID_2  = 'outcome_id_2'
+    KEY_2         = 1
+    EXPLANATION_2 = 'A sample explanation'
+    VALUE_2       = 2.0
+    ALL_VALUES_2  = [('A', 0.0), ('B', 2.0), ('C', 4.0), ('D', 6.0), ('E', 8.0)]
+    USER_INPUT_2  = False
+
+    FEEDBACK_ID_3  = 'outcome_id_3'
+    KEY_3         = None
+    EXPLANATION_3 = 'A sample explanation'
+    VALUE_3       = 3.0
+    ALL_VALUES_3  = None
+    USER_INPUT_3  = True
+
+    FEEDBACK_ID_4  = 'outcome_id_4'
+    KEY_4         = None
+    EXPLANATION_4 = 'A sample explanation'
+    VALUE_4       = 1.5
+    ALL_VALUES_4  = None
+    USER_INPUT_4  = False
+
+    STAGE_ID_1  = 'stage_id_1'
+    STAGE_ID_2  = 'stage_id_2'
+
+    SUBMISSION_1  = 'submission_1234'
+    SUBMISSION_2  = 'submission_5678'
+
+    def test_outcome_fixed(self):
+        """Test that a fixed outcome (i.e., a pass or fail) that is programatically determined can be set and retrieved."""
+        obj = outcomes.Outcome(outcome_id   = TestOutcomesModel.OUTCOME_ID_1,
+                               key          = TestOutcomesModel.KEY_1,
+                               explanation  = TestOutcomesModel.EXPLANATION_1,
+                               value        = TestOutcomesModel.VALUE_1,
+                               all_values   = TestOutcomesModel.ALL_VALUES_1,
+                               user_input   = TestOutcomesModel.USER_INPUT_1)
+
+        config.ini.clear()
+
+
         
 
 if __name__ == '__main__':
