@@ -53,6 +53,23 @@ class AbstractModelContainer(OrderedDict):
         value -- The value to store in the model.
         """
         data_id = str(data_id)
+
+        # If value is inserted somewhere else, delete the existing one
+        try:
+            existing_index = list(self.values()).index(value)
+            existing_key = list(self.keys())[existing_index]
+            del self[existing_key]
+        except:
+            pass
+
+        # If the data_id is not correct inside value, change it
+        try:
+            child_parent_id = value._parent_data_id
+            if data_id != child_parent_id:
+                value._parent_data_id = data_id
+        except:
+            pass
+
         return super().__setitem__(data_id, value)
 
     def __contains__(self, data_id):
@@ -96,7 +113,9 @@ class DataByStage(AbstractModelContainer):
         super().__init__(child_data_type = child_data_type,
                          parent_data_id  = parent_data_id)
 
-        self.submission = parent_data_id
+    submission = property(lambda self:self._parent_data_id, doc="""
+            Retrieve the submission identifier
+            """)
 
     def __dict__(self):
         """Retrieve a copy of the data as a new dictionary."""

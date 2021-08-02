@@ -20,9 +20,12 @@ class FeedbackByStage(base.DataByStage):
         super().__init__(child_data_type = Feedbacks,
                          parent_data_id  = parent_data_id)
 
-        feedback_pre = config.ini['assessment'].get('feedback_pre', False)
-        if feedback_pre:
-            self['__init']['0'] = feedback_pre
+        try:
+            feedback_pre = config.ini['assessment'].get('feedback_pre', False)
+            if feedback_pre:
+                self['__init']['0'] = feedback_pre
+        except:
+            pass
 
     str = property(lambda self:self.__str__(), doc="""
             Retrieve a copy of the feedback as a new string.
@@ -50,7 +53,9 @@ class Feedbacks(base.Data):
         super().__init__(child_data_type = str,
                          parent_data_id  = parent_data_id)
 
-        self.stage_id = parent_data_id
+    stage_id = property(lambda self:self._parent_data_id, doc="""
+            Retrieve the stage identifier.
+            """)
 
     def __setitem__(self, feedback_id, value):
         """Set a piece of feedback, replacing \\n with \n (as caused by

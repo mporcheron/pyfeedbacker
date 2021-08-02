@@ -79,14 +79,6 @@ class AllSubmissions(OrderedDict):
         return items
 
     def __repr__(self):
-        # ret = '{' + self.submission + ': {'
-        # for key, value in self.items():
-        #     ret += f'{key}: {value}, '
-        # ret += '\})'
-
-        return 'ffff'
-
-    def __repr__(self):
         ret  = f'{self.__class__}('
         ret += str(list(self))
         ret += ')'

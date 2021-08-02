@@ -54,7 +54,9 @@ class Marks(base.Data):
         super().__init__(child_data_type = None,
                          parent_data_id  = parent_data_id)
 
-        self.stage_id = parent_data_id
+    stage_id = property(lambda self:self._parent_data_id, doc="""
+            Retrieve the stage identifier.
+            """)
 
     def sum(self, outcomes_for_stage):
         """Calculate the mark for a stage by passing in an outcomes model of its scores. Applies any mix/max mark rules specified in the 

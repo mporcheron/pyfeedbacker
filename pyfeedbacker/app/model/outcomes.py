@@ -72,7 +72,9 @@ class Outcomes(base.Data):
         super().__init__(child_data_type = Outcome,
                          parent_data_id  = parent_data_id)
 
-        self.stage_id = parent_data_id
+    stage_id = property(lambda self:self._parent_data_id, doc="""
+            Retrieve the stage identifier.
+            """)
 
     def __setitem__(self, outcome_id, new_outcome):
         outcome_id = str(outcome_id)
@@ -83,7 +85,10 @@ class Outcomes(base.Data):
             del self[existing_key]
         except:
             pass
-        
+
+        if outcome_id != new_outcome['outcome_id']:
+            new_outcome['outcome_id'] = outcome_id
+
         if outcome_id in self:
             outcome = self[outcome_id]
             if new_outcome['outcome_id'] != outcome['outcome_id']:
