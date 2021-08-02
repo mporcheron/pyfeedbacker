@@ -454,6 +454,9 @@ class OutputForm(OutputBase):
                                          ') vs. number of answers (' +
                                          str(len(scale)) +
                                          ') in question ' + num + '.')
+                    for f_id, fb_str in enumerate(feedback):
+                        if fb_str == '-':
+                            feedback[f_id] = ''
                 except KeyError:
                     pass
 
