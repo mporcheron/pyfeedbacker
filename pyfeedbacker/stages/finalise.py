@@ -78,4 +78,4 @@ class StageFinalise(stage.HandlerEditText):
             OutputEditText.
         value -- The new value of the feedback.
         """
-        self.model['feedbacks'][self.submission][stage_id][feedback_id] = value
+        self.model.feedbacks[self.submission][stage_id][feedback_id] = value
