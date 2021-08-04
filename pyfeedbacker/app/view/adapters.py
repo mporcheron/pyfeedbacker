@@ -342,8 +342,11 @@ class AdapterForm(AdapterBase):
             existing_score = outcome['value']
 
             if outcome['key'] not in question.feedback:
-                feedback = question.feedback[outcome['key']]
-                self.set_feedback(question.num, feedback)
+                try:
+                    feedback = question.feedback[outcome['key']]
+                    self.set_feedback(question.num, feedback)
+                except TypeError:
+                    pass
 
         # generate UI elements
         score_max = '/' + str(max(question.scores))
@@ -505,13 +508,16 @@ class AdapterForm(AdapterBase):
 
         if state:
             score    = float(self.questions[question_id].scores[score_id])
-            feedback = self.questions[question_id].feedback[score_id]
+            feedback = self.questions[question_id].feedback
+            if feedback is not None:
+                feedback = feedback[score_id]
+                if len(feedback) > 0:
+                    self.set_feedback(question.num, feedback)
 
             outcome = self._possible_outcomes[question_id]
             outcome['key']   = score_id
             outcome['value'] = score
 
-            self.set_feedback(question.num, feedback)
             self.set_outcome(question.num, outcome)
 
             if question.num in self.required_not_completed:
