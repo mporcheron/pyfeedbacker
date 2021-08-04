@@ -194,7 +194,8 @@ class FileSystemModel(model.Model):
                             except:
                                 pass
 
-                    sum += score
+                    if score is not None:
+                        sum += score
                     scores.append(str(score))
 
                 f.write(','.join(scores) + ',' + str(sum))
