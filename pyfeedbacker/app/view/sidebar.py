@@ -4,6 +4,7 @@ from pyfeedbacker.app import stage
 from pyfeedbacker.app.view import adapters as ua, urwid as uu, widgets as uw
 
 import urwid
+import math
 
 
 
@@ -106,7 +107,7 @@ class SidebarStagesWidget(urwid.WidgetWrap):
         self.window.loop.draw_screen()
 
     class StageButton(uw.SimpleButton):
-        button_left  = u'  > '
+        button_left  = u' '
         button_right = u''
 
         def __init__(self,
@@ -116,9 +117,7 @@ class SidebarStagesWidget(urwid.WidgetWrap):
                      on_press   = None,
                      user_data  = None,
                      show_state = True):
-            """
-            Button for the user to select on the sidebar.
-            """
+            """Button for the user to select on the sidebar."""
             self._stage_label = label
             self._width       = width
             self._show_state  = show_state
@@ -127,33 +126,57 @@ class SidebarStagesWidget(urwid.WidgetWrap):
             super().__init__(label, on_press, user_data)
 
         def generate_label(self, state):
-            """
-            Label with the state icon shown on the far right.
-            """
-            state_icon_padding, state_icon = self.get_state_icon(state)
-            return self._stage_label + state_icon_padding + state_icon
+            """Label with the state icon shown on the far right."""
+            text = self.get_state_icon(state) + ' ' + self._stage_label
+
+            num_chars = len(text)
+            num_lines = math.ceil(num_chars / self._width)
+
+            if text.startswith('  Task 10'):
+                zz = 1
+
+            if num_lines > 1:
+                line = 1
+                pos = 0
+                line_pos = 0
+                while pos < num_chars:
+                    ch = text[pos]
+                    line_pos += 1
+
+                    if line_pos >= self._width:
+                        line_pos = 0
+                        spaces = 1
+
+                        while text[pos] != ' ':
+                            pos -= 1
+                            spaces += 1
+
+                        text = text[:pos] + (' ' * spaces) + text[pos:] 
+                        line_pos += 3
+                        num_chars = len(text)
+                        pos += spaces
+                        line += 1
+
+                    pos += 1
+
+            return text
 
         def get_state_icon(self, state):
-            """
-            Retrieve the icon for the current state of the stage.
-            """
-            padding = ' ' * (self._width - 3 - len(self._stage_label) - 5)
+            """Retrieve the icon for the current state of the stage."""
             if self._show_state:
                 if state == stage.StageInfo.STATE_INACTIVE:
-                    return (padding, '・')
+                    return ' '
                 elif state == stage.StageInfo.STATE_ACTIVE:
-                    return (padding, '✽')
+                    return '✽'
                 elif state == stage.StageInfo.STATE_COMPLETE:
-                    return (padding, '✓')
+                    return '✓'
                 elif state == stage.StageInfo.STATE_FAILED:
-                    return (padding, '✗')
+                    return '✗'
                 else:
-                    return (padding, '!')
+                    return '!'
                     
-            return (padding, ' ')
+            return ' '
 
         def set_state(self, state):
-            """
-            Change the state of the label (and update the button)
-            """
+            """Change the state of the label (and update the button)."""
             super().set_label(self.generate_label(state))
