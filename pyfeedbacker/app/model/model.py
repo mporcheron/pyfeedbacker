@@ -21,9 +21,9 @@ class Model(object):
            organised by submission.
         3. Marks model, which stores the marks for each component
         """
-        self.outcomes  = AllSubmissions(outcomes.OutcomesByStage)
-        self.feedbacks = AllSubmissions(feedbacks.FeedbackByStage)
-        self.marks     = marks.StagesMarks()
+        self.outcomes  = AllSubmissions(self, outcomes.OutcomesByStage)
+        self.feedbacks = AllSubmissions(self, feedbacks.FeedbackByStage)
+        self.marks     = marks.StagesMarks(self)
 
     @abc.abstractmethod
     def save(self):
@@ -33,14 +33,16 @@ class Model(object):
 
 
 class AllSubmissions(OrderedDict):
-    def __init__(self, model_type):
+    def __init__(self, root_model, model_type):
         """Models which store data by submission have an AllSubmissions
         object as the root storge container.
         
         Arguments:
+        root_model -- The root model object.
         model_type -- A data type that will be stored in this object, one for
             each submission.
         """
+        self._root_model = root_model
         self._model_type = model_type
 
     def __getitem__(self, submission):
@@ -56,7 +58,8 @@ class AllSubmissions(OrderedDict):
         try:
             return super().__getitem__(submission)
         except KeyError:
-            super().__setitem__(submission, self._model_type(submission))
+            super().__setitem__(submission, self._model_type(self._root_model,
+                                                             submission))
             return super().__getitem__(submission)
 
     def __contains__(self, submission):

@@ -6,7 +6,7 @@ from pyfeedbacker.app.model import base
 
 
 class FeedbackByStage(base.DataByStage):
-    def __init__(self, parent_data_id):
+    def __init__(self, root_model, parent_data_id):
         """Create a container for storing feedback for each stage in a 
         submission's scoring process.
 
@@ -14,10 +14,12 @@ class FeedbackByStage(base.DataByStage):
         Submission -> Stage -> Feedbacks -> Feedback
         
         Arguments:
+        root_model -- The root model object.
         parent_data_id -- The identifier of the key in the parent container,
             which in this case is the submission identifier.
         """
-        super().__init__(child_data_type = Feedbacks,
+        super().__init__(root_model,
+                         child_data_type = Feedbacks,
                          parent_data_id  = parent_data_id)
 
         try:
@@ -44,13 +46,15 @@ class FeedbackByStage(base.DataByStage):
 
 
 class Feedbacks(base.Data):
-    def __init__(self, parent_data_id):
+    def __init__(self, root_model, parent_data_id):
         """Feedback for a particular stage, organised by a unique feedback ID.
         
         Arguments:
+        root_model -- The root model object.
         parent_data_id -- The identifier of the key in the parent container,
             which in this case is the stage identifier."""
-        super().__init__(child_data_type = str,
+        super().__init__(root_model,
+                         child_data_type = str,
                          parent_data_id  = parent_data_id)
 
     stage_id = property(lambda self:self._parent_data_id, doc="""

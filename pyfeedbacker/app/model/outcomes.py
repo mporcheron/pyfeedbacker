@@ -6,17 +6,19 @@ from pyfeedbacker.app.model import base
 
 
 class OutcomesByStage(base.DataByStage):
-    def __init__(self, parent_data_id):
+    def __init__(self, root_model, parent_data_id):
         """Create a container for storing outcomes (i.e. scoring) for each stage in a submission's scoring process.
 
         Outcomes is a four level model:
         Submission -> Stage -> Outcomes -> Outcome
         
         Arguments:
+        root_model -- The root model object.
         parent_data_id -- The identifier of the key in the parent container,
             which in this case is the submission identifier.
         """
-        super().__init__(child_data_type = Outcomes,
+        super().__init__(root_model = root_model,
+                         child_data_type = Outcomes,
                          parent_data_id  = parent_data_id)
 
         try:
@@ -27,8 +29,12 @@ class OutcomesByStage(base.DataByStage):
         except KeyError:
             pass
 
-    sum = property(lambda self:self._calculate_score(), doc="""
+    score = property(lambda self:self._calculate_score(), doc="""
             The total score for the submission as a float.
+            """)
+
+    mark = property(lambda self:self._calculate_mark(), doc="""
+            The total mark for the submission as a float.
             """)
 
     def _calculate_score(self):
@@ -38,7 +44,7 @@ class OutcomesByStage(base.DataByStage):
         score = 0.0
 
         for value in self.values():
-            score += value.sum
+            score += value.score
 
         try:
             s_max = config.ini[f'assessment'].getfloat('score_max', None)
@@ -56,6 +62,25 @@ class OutcomesByStage(base.DataByStage):
 
         return score
 
+    def _calculate_mark(self):
+        """Calculate the total mark for this submission, and apply any 
+        configured min/max sum bounds.
+        """
+        sum = 0.0
+
+        for value in self.values():
+            sum += value.mark
+
+        m_max = config.ini[f'assessment'].getfloat('mark_max', None)
+        if m_max is not None and sum > m_max:
+            sum = m_max
+
+        m_min = config.ini[f'assessment'].getfloat('mark_min', None)
+        if m_min is not None and sum < m_min:
+            sum = m_min
+
+        return sum
+
     def __float__(self):
         """The total score for the submission as a float."""
         return self._calculate_score()
@@ -63,13 +88,15 @@ class OutcomesByStage(base.DataByStage):
 
 
 class Outcomes(base.Data):
-    def __init__(self, parent_data_id):
+    def __init__(self, root_model, parent_data_id):
         """Feedback for a particular stage, organised by a unique feedback ID.
         
         Arguments:
+        root_model -- The root model object.
         parent_data_id -- The identifier of the key in the parent container,
             which in this case is the stage identifier."""
-        super().__init__(child_data_type = Outcome,
+        super().__init__(root_model      = root_model,
+                         child_data_type = Outcome,
                          parent_data_id  = parent_data_id)
 
     stage_id = property(lambda self:self._parent_data_id, doc="""
@@ -109,8 +136,12 @@ class Outcomes(base.Data):
             new_outcome['outcome_id'] = outcome_id
             return super().__setitem__(outcome_id, new_outcome)
 
-    sum = property(lambda self:self._calculate_score(), doc="""
+    score = property(lambda self:self._calculate_score(), doc="""
             Read the total score for the submission as a float.
+            """)
+
+    mark = property(lambda self:self._calculate_mark(), doc="""
+            Read the total mark for the submission as a float.
             """)
 
     def _calculate_score(self):
@@ -140,6 +171,53 @@ class Outcomes(base.Data):
             pass
 
         return score
+
+    def _calculate_mark(self):
+        """Calculate the total mark for a particular stage."""
+        marks = self._root_model.marks
+        sum = 0.0
+
+        for outcome_id, outcome in self.items():
+            try:
+                try:
+                    try:
+                        key = str(outcome['key'])
+
+                        # raise type error if marks[outcome_id] is not a list
+                        # raise KeyError if not in it
+                        # raise ValueError if mark not set
+                        value = marks[outcome_id][key]
+                        sum += value
+                    except TypeError:
+                        if outcome['user_input']:
+                            try:
+                                sum += (outcome['value'] * marks[outcome_id])
+                            except TypeError:
+                                # no weight set
+                                sum += outcome['value']
+                        else:
+                            sum += marks[outcome_id]
+                except KeyError:
+                    sum += outcome['value']
+            except ValueError:
+                try:
+                    sum += outcome['value']
+                except TypeError:
+                    # may be a non-scored value
+                    pass
+            except TypeError:
+                # no score
+                pass
+
+        m_max = config.ini[f'stage_{self.stage_id}'].getfloat('mark_max', None)
+        if m_max is not None and sum > m_max:
+            sum = m_max
+
+        m_min = config.ini[f'stage_{self.stage_id}'].getfloat('mark_min', None)
+        if m_min is not None and sum < m_min:
+            sum = m_min
+
+        return sum
 
     def __float__(self):
         """Calculate the total score for a particular stage."""

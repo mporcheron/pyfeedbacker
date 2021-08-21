@@ -7,17 +7,22 @@ import abc
 
 
 class AbstractModelContainer(OrderedDict):
-    def __init__(self, child_data_type = None, parent_data_id = None):
+    def __init__(self,
+                 root_model,
+                 child_data_type = None,
+                 parent_data_id = None):
         """Base class for storing data by ID. Its expected that any specific 
         data type will extended this class and provide the data container type through calling `__init__` on `super()`.
 
         This is essentially an `collections.OrderedDict`.
 
         Keyword arguments:
+        root_model -- The root model object.
         child_data_type -- A data type that will be stored inside this 
             container. New data will be initialised to an instance of this type.
         parent_data_id -- ID of the parent data container, if it exists.
         """
+        self._root_model      = root_model
         self._child_data_type = child_data_type
         self._parent_data_id  = parent_data_id
 
@@ -37,9 +42,10 @@ class AbstractModelContainer(OrderedDict):
             if self._child_data_type is None:
                 new_obj = None
             elif issubclass(self._child_data_type, AbstractModelContainer):
-                new_obj = self._child_data_type(parent_data_id = data_id)
+                new_obj = self._child_data_type(self._root_model,
+                                                parent_data_id = data_id)
             else:
-                new_obj = self._child_data_type()
+                new_obj = self._child_data_type(self._root_model)
     
             self.__setitem__(data_id, new_obj)
             return new_obj
@@ -101,16 +107,18 @@ class AbstractModelContainer(OrderedDict):
 
 
 class DataByStage(AbstractModelContainer):
-    def __init__(self, child_data_type, parent_data_id):
+    def __init__(self, root_model, child_data_type, parent_data_id):
         """Create a container for storing data for each stage.
         
         Arguments:
+        root_model -- The root model object.
         child_data_type -- A data type that will be stored inside this 
             container. New data will be initialised to an instance of this type.
         parent_data_id -- The identifier of the key in the parent container,
             which in this case is the submission identifier.
         """
-        super().__init__(child_data_type = child_data_type,
+        super().__init__(root_model      = root_model,
+                         child_data_type = child_data_type,
                          parent_data_id  = parent_data_id)
 
     submission = property(lambda self:self._parent_data_id, doc="""

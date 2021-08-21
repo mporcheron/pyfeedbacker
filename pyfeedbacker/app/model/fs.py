@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from pyfeedbacker.app import config
-from pyfeedbacker.app.model import model
+from pyfeedbacker.app.model import model, outcomes
 
 from collections import OrderedDict
 
@@ -146,62 +146,36 @@ class FileSystemModel(model.Model):
         if save_marks:
             file_name = config.ini['model_file']['file_marks']
 
-        (title_header_str, stage_header_str, score_header_str, mapping) = \
-            self._get_csv_header(save_marks)
+        title_header_str = config.ini['app']['name'] + \
+                           (' marks\n' if save_marks else ' scores\n')
+
+        column_header = OrderedDict()
+        for submission, outcomes in self.outcomes.items():
+            for stage_id in sorted(outcomes.keys()):
+                column_header[stage_id] = None
+        column_header['sum'] = None
 
         with open(file_name, 'w') as f:
-            f.write(title_header_str + '\n')
-            f.write(stage_header_str + '\n')
-            f.write(score_header_str + '\n')
+            f.write(title_header_str)
 
-            for submission, stages in self.outcomes.items():
-                scores = [str(submission)]
-                sum = 0
- 
-                for (stage_id, score_id) in mapping:
-                    score = 0.0
-                    try:
-                        score = float(stages[stage_id][score_id]['value'])
-                    except:
-                        pass
+            f.write('submission')
+            for stage_id in column_header.keys():
+                f.write(',' + str(stage_id))
 
-                    if save_marks:
-                        try:
-                            group = self.marks[stage_id][score_id]
-                            
-                            if isinstance(group, dict):
-                                if len(group) == 0:
-                                    raise
+            for submission, outcomes in self.outcomes.items():
+                f.write('\n' + str(submission))
+                i = 1
+                for stage_id in column_header.keys():
+                    if stage_id in outcomes:
+                        if save_marks:
+                            f.write(',' + str(outcomes[stage_id].mark))
+                        else:
+                            f.write(',' + str(outcomes[stage_id].score))
+                    else:
+                        f.write(',')
 
-                            try:
-                                key = stages[stage_id][score_id]['key']
-                                score = group[str(key)]
-                            except:
-                                # if there is no key, but a value then
-                                # it is a input field, in which case
-                                # we multiple the mark value by the
-                                # score value
-                                value = stages[stage_id][score_id]['value']
-                                if value is None:
-                                    score = group
-                                else:
-                                    score = value * group
-                        except:
-                            try:
-                                value = stages[stage_id][score_id]['value']
-                                if value is not None:
-                                    score *= value
-                            except:
-                                pass
-
-                    if score is not None:
-                        sum += score
-                    scores.append(str(score))
-
-                f.write(','.join(scores) + ',' + str(sum))
-                f.write('\n')
-
-            f.write('\n')
+                    i += 1
+                f.write(str(outcomes.score))
 
         if not save_marks:
             if config.ini['assessment'].getboolean('scores_are_marks', False) \
@@ -230,8 +204,8 @@ class FileSystemModel(model.Model):
 
                 with open(path, 'w') as f:
                     data = {}
-                    data['score'] = self.outcomes[submission].sum
-                    data['mark'] = self.marks.sum(self.outcomes[submission])
+                    data['score'] = self.outcomes[submission].score
+                    data['mark'] = self.outcomes[submission].mark
 
                     data['score_min'] = config.ini['assessment'].getfloat(
                         'score_min', None)
@@ -245,9 +219,8 @@ class FileSystemModel(model.Model):
 
                     scores = self.outcomes[submission]
                     for stage_id, stage_scores in scores.items():
-                        data[f'stage_{stage_id}_score'] = stage_scores.sum
-                        data[f'stage_{stage_id}_mark'] = \
-                            self.marks[stage_id].sum(stage_scores)
+                        data[f'stage_{stage_id}_score'] = stage_scores.score
+                        data[f'stage_{stage_id}_mark'] = stage_scores.mark
 
                         data[f'stage_{stage_id}_score_max'] = \
                             config.ini[f'stage_{stage_id}'].getfloat(
