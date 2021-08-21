@@ -155,8 +155,7 @@ class Window:
         try:
             stats = uf.FooterWidget.Statistics()
             for submission in self.model.outcomes.values():
-                mark = self.model.marks.sum(submission)
-                stats.add_value(submission.sum)
+                stats.add_value(submission.score)
 
             try:
                 self.footer.set_statistics(stats)
@@ -169,8 +168,7 @@ class Window:
         try:
             stats = uf.FooterWidget.Statistics()
             for submission in self.model.outcomes.values():
-                mark = self.model.marks.sum(submission)
-                stats.add_value(mark)
+                stats.add_value(submission.mark)
 
             try:
                 self.footer.set_statistics(stats)

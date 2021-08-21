@@ -40,12 +40,12 @@ class Controller(base.BaseController):
         given a prompt asking whether they want to continue with the existing
         scores or start again.
         """
-        self.view.set_score(self.outcomes.sum)
+        self.view.set_score(self.outcomes.score)
 
         if self._next_stage_id is not None:
             return
 
-        if self.outcomes.sum != 0.0 or len(self.feedbacks.str) > 0:
+        if self.outcomes.score != 0.0 or len(self.feedbacks.str) > 0:
             self.view.show_alert('This submission has already been marked',
                                  'Do you want to keep the existing marking' +
                                  '\n or would you like to start again?',
@@ -95,7 +95,7 @@ class Controller(base.BaseController):
         """
         self.outcomes[stage_id][outcome_id] = outcome
 
-        self.view.set_score(self.outcomes.sum)
+        self.view.set_score(self.outcomes.score)
 
     def select_stage(self, stage_id):
         """Select a stage and:

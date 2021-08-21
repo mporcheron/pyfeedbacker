@@ -341,12 +341,12 @@ class AdapterForm(AdapterBase):
 
             existing_score = outcome['value']
 
-            if outcome['key'] not in question.feedback:
-                try:
+            try:
+                if outcome['key'] not in question.feedback:
                     feedback = question.feedback[outcome['key']]
                     self.set_feedback(question.num, feedback)
-                except TypeError:
-                    pass
+            except TypeError:
+                pass
 
         # generate UI elements
         score_max = '/' + str(max(question.scores))
@@ -455,12 +455,14 @@ class AdapterForm(AdapterBase):
             # determine if score is valid, and add feedback if missing
             feedbacks_value = self.feedbacks[self.stage_id][question.num]
             outcome_value = outcome['value']
+            if outcome['value'] is None:
+                outcome['value'] = ''
             if feedbacks_value != outcome['value']:
                 raise stage.StageError(f'Feedback is different in outcomes '
                                        f'when compared to feedback for question'
                                        f' {question.num} in {self.stage_id}. '
                                        f' Feedback is "{outcome_value}" in '
-                                       f'outcomes but "{feedbacks_value}" in'
+                                       f'outcomes but "{feedbacks_value}" in '
                                        f'feedbacks.')
 
             existing_feedback = outcome['value']

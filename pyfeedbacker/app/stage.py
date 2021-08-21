@@ -613,7 +613,8 @@ class OutputMarker(OutputBase):
                         performance[outcome_id][key] = 1    
                 else:
                     try:
-                        performance[outcome_id] += 1
+                        if not isinstance(performance[outcome_id], dict):
+                            performance[outcome_id] += 1
                     except KeyError:
                         performance[outcome_id] = 1
 
