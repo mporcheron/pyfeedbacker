@@ -6,7 +6,8 @@ from pyfeedbacker.app.model import outcomes
 import abc
 import importlib
 import json
-
+import os
+import subprocess
 
 
 class StageInfo:
@@ -153,8 +154,7 @@ class HandlerBase:
         self.stage_id    = stage_id
 
     def set_framework(self, controller):
-        """
-        Set the controller (and by proxy the model and the view). Called by
+        """Set the controller (and by proxy the model and the view). Called by
         the marker controller.
         """
         self.controller       = controller
@@ -189,9 +189,7 @@ class HandlerBase:
             user_input  = user_input)
 
     def update_ui(self):
-        """
-        Trigger a UI update at any time for this stage.
-        """
+        """Trigger a UI update at any time for this stage."""
         return self.controller.set_stage_output(self.stage_id, self.output)
 
     @abc.abstractmethod
@@ -200,15 +198,14 @@ class HandlerBase:
 
     @abc.abstractmethod
     def run(self):
-        """
-        Execute the stage. Return a StageResult if the stage execution finished.
+        """Execute the stage. Return a StageResult if the stage execution 
+        finished.
         """
         pass
 
     @abc.abstractmethod
     def refresh(self):
-        """
-        Refresh the stage. This may need to be called if the stage draws on
+        """Refresh the stage. This may need to be called if the stage draws on
         data that may change externally (e.g. the model, or some part of the
         submission may change due to an external event).
         """
@@ -318,15 +315,90 @@ class HandlerPython(HandlerBase):
 
 
 class HandlerProcess(HandlerBase):
-    # FIXME HandlerProcess not implemented
-    pass
+    def __init__(self, stage_id):
+        """Run a command as a subprocess.
+        
+        Override setup() to setup the command, and either set the member 
+        variables or call this class's function (i.e. super().setup(…)) to do
+        the setup.
+        """
+        super().__init__(stage_id)
+
+    def set_framework(self, controller):
+        result = super().set_framework(controller)
+        self.setup()
+        return result
+
+    @abc.abstractmethod
+    def setup(self,
+              command  = ['pwd'],
+              run_once = False,
+              cwd      = None,
+              shell    = False):
+        """Override this function to setup the command, and either set the member variables or call this class's function (i.e. super().setup(…)) to dos the setup.
+        
+        Note the command should be given as a array of words/arguments. Handle the response through the response 
+        method, which takes 3 arguments: exit code, stdout and stderr.
+
+        Blocks during execution.
+        
+        Arguments:
+        stage_id -- The current stage in the process (we should know this as   
+            this is the file for this stage, but this is just passed in for 
+            clarity).
+        command -- Array of the command to run.
+        run_once -- If True, will only run on the first execution of the stage
+            otherwise runs everytime stage is loaded (default: False).
+        cwd -- Directory to run command from, if None uses the temporary    
+            working directory (the default behaviour).
+        shell -- Run the command using the default system shell.
+        """
+        self.command  = command
+        self.run_once = run_once
+        self.cwd      = cwd
+        self.shell    = shell
+
+    @abc.abstractmethod
+    def response(self, returncode, stdout, stderr):
+        """Handle the response. By default this always marks the outcome of the 
+        stage as a pass.
+        
+        Arguments:
+        returncode -- Exit status from the execution of the command.
+        stdout -- Standard output of the command.
+        stderr -- Error output of the command.
+        """
+        result = StageResult(StageResult.RESULT_PASS)
+        result.set_output(self.output)
+        return result
+
+    def _exec(self):
+        if hasattr(self, 'command') and self.command is not None:
+            result = subprocess.run(self.command,
+                                    cwd            = self.cwd,
+                                    capture_output = True,
+                                    shell          = self.shell)
+            return self.response(result.returncode,
+                                 result.stdout,
+                                 result.stderr)
+        else:
+            result = StageResult(StageResult.RESULT_CRITICAL)
+            result.set_error(f'No command provided to setup function for '
+                             f'{self.stage_id} stage.')
+            return result
+
+    def refresh(self):  
+        if not self.run_once:
+            return self._exec()
+
+    def run(self):
+        return self._exec()
 
 
 
 class StageError(Exception):
     def __init__(self, mesg):
-        """
-        An error that occurs during stage execution that means the stage
+        """An error that occurs during stage execution that means the stage
         has failed.
         """
         self.mesg = mesg
@@ -338,8 +410,7 @@ class StageError(Exception):
 
 class StageIgnorableError(StageError):
     def __init__(self, mesg):
-        """
-        A warning that occurs during stage execution but the stage/user can
+        """A warning that occurs during stage execution but the stage/user can
         continue if they desire.
         """
         self.mesg = mesg
