@@ -175,7 +175,11 @@ class FileSystemModel(model.Model):
                         f.write(',')
 
                     i += 1
-                f.write(str(outcomes.score))
+
+                if save_marks:
+                    f.write(str(outcomes.mark))
+                else:
+                    f.write(str(outcomes.score))
 
         if not save_marks:
             if config.ini['assessment'].getboolean('scores_are_marks', False) \

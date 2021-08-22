@@ -71,13 +71,19 @@ class OutcomesByStage(base.DataByStage):
         for value in self.values():
             sum += value.mark
 
-        m_max = config.ini[f'assessment'].getfloat('mark_max', None)
-        if m_max is not None and sum > m_max:
-            sum = m_max
+        try:
+            m_max = config.ini[f'assessment'].getfloat('mark_max', None)
+            if m_max is not None and sum > m_max:
+                sum = m_max
+        except KeyError:
+            pass
 
-        m_min = config.ini[f'assessment'].getfloat('mark_min', None)
-        if m_min is not None and sum < m_min:
-            sum = m_min
+        try:
+            m_min = config.ini[f'assessment'].getfloat('mark_min', None)
+            if m_min is not None and sum < m_min:
+                sum = m_min
+        except KeyError:
+            pass
 
         return sum
 
@@ -174,48 +180,55 @@ class Outcomes(base.Data):
 
     def _calculate_mark(self):
         """Calculate the total mark for a particular stage."""
-        marks = self._root_model.marks
+        try:
+            marks = self._root_model.marks[self.stage_id]
+        except:
+            marks = None
         sum = 0.0
 
         for outcome_id, outcome in self.items():
-            try:
+            if outcome['user_input']:
                 try:
+                    # if this is user_input, any value in the marks model is 
+                    # a scale factor
+                    sum += (outcome['value'] * marks[outcome_id])
+                except:
+                    # if the value in the outcomes model is a float, add it
+                    # otherwise do nothing
                     try:
-                        key = str(outcome['key'])
-
-                        # raise type error if marks[outcome_id] is not a list
-                        # raise KeyError if not in it
-                        # raise ValueError if mark not set
-                        value = marks[outcome_id][key]
-                        sum += value
+                        sum += outcome['value']
                     except TypeError:
-                        if outcome['user_input']:
-                            try:
-                                sum += (outcome['value'] * marks[outcome_id])
-                            except TypeError:
-                                # no weight set
-                                sum += outcome['value']
-                        else:
-                            sum += marks[outcome_id]
-                except KeyError:
-                    sum += outcome['value']
-            except ValueError:
+                        pass
+            else:
+                # if there is a value in the marks model for the outcome, use
+                # that, otherwise use the score
                 try:
-                    sum += outcome['value']
-                except TypeError:
-                    # may be a non-scored value
-                    pass
-            except TypeError:
-                # no score
-                pass
+                    key = str(outcome['key'])
+                    value = marks[outcome_id][key]
+                    sum += value
+                except:
+                    # if the value in the outcomes model is a float, add it
+                    # otherwise do nothing
+                    try:
+                        sum += outcome['value']
+                    except TypeError:
+                        pass
 
-        m_max = config.ini[f'stage_{self.stage_id}'].getfloat('mark_max', None)
-        if m_max is not None and sum > m_max:
-            sum = m_max
+        try:
+            m_max = config.ini[f'stage_{self.stage_id}'].getfloat(
+                'mark_max', None)
+            if m_max is not None and sum > m_max:
+                sum = m_max
+        except KeyError:
+            pass
 
-        m_min = config.ini[f'stage_{self.stage_id}'].getfloat('mark_min', None)
-        if m_min is not None and sum < m_min:
-            sum = m_min
+        try:
+            m_min = config.ini[f'stage_{self.stage_id}'].getfloat(
+                'mark_min', None)
+            if m_min is not None and sum < m_min:
+                sum = m_min
+        except KeyError:
+            pass
 
         return sum
 

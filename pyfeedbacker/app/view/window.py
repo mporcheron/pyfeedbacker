@@ -165,16 +165,13 @@ class Window:
             pass
 
     def update_marks(self):
-        try:
-            stats = uf.FooterWidget.Statistics()
-            for submission in self.model.outcomes.values():
-                stats.add_value(submission.mark)
+        stats = uf.FooterWidget.Statistics()
+        for submission in self.model.outcomes.values():
+            stats.add_value(submission.mark)
 
-            try:
-                self.footer.set_statistics(stats)
-            except AttributeError:
-                pass
-        except TypeError:
+        try:
+            self.footer.set_statistics(stats)
+        except AttributeError:
             pass
 
     def _on_interrupt(self, sig, frame):
