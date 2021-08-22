@@ -341,13 +341,6 @@ class AdapterForm(AdapterBase):
 
             existing_score = outcome['value']
 
-            try:
-                if outcome['key'] not in question.feedback:
-                    feedback = question.feedback[outcome['key']]
-                    self.set_feedback(question.num, feedback)
-            except TypeError:
-                pass
-
         # generate UI elements
         score_max = '/' + str(max(question.scores))
         radio_group = []
