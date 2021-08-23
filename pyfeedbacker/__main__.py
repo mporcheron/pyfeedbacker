@@ -26,7 +26,7 @@ if args['score'] and not args['delete'] and not args['mark']:
     pyfeedbacker.start_scorer(args['score'])
 elif not args['score'] and args['delete'] and not args['mark']:
     pyfeedbacker.start_deleter(args['delete'])
-elif not args['score' and not args['delete']] and args['mark']:
+elif not args['score'] and not args['delete'] and args['mark']:
     pyfeedbacker.start_marker()
 else:
-    raise AttributeError('Cannot run scoring and marking apps simulatenously')
+    parser.print_help();
