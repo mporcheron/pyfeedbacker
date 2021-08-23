@@ -47,9 +47,12 @@ class BaseController:
         return self
 
     def start(self):
-        """Start the application by loading stages and then the view."""
+        """Start the application by loading stages and then the view, if it exists."""
         self._load_stages()
-        self.view.run()
+
+        if hasattr(self, 'view'):
+            self.view.run()
+
 
     def _load_stages(self):
         """Load all stages from the configuration file."""
@@ -106,7 +109,9 @@ class BaseController:
     def save_and_close(self):
         """Save the model to permanent storage and close the application."""
         self.model.save()
-        self.view.quit()
+        
+        if hasattr(self, 'view'):
+           self.view.quit()
 
     @abc.abstractmethod
     def execute_stage(self, stage_id = None):
