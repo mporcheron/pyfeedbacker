@@ -109,16 +109,16 @@ class StageResult:
         return this because the form is always mutable.
         """
         self.result       = result
-        self.feedback     = ''
+        self.feedback     = {}
         self.outcome      = None
         self.error        = ''
         self.output       = None
 
-    def add_feedback(self, feedback):
+    def add_feedback(self, id, feedback):
         """
         Add to the feedback for this stage.
         """
-        self.feedback    += ''
+        self.feedback[id] = feedback
 
     def set_outcome(self, outcome):
         """
@@ -200,6 +200,13 @@ class HandlerBase:
     def run(self):
         """Execute the stage. Return a StageResult if the stage execution 
         finished.
+        """
+        pass
+
+    @abc.abstractmethod
+    def on_close(self):
+        """End a stage (allows for any exit-time computation). Note this runs on
+        the main thread so nothing too taxing!
         """
         pass
 

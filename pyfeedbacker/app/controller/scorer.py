@@ -106,6 +106,18 @@ class Controller(base.BaseController):
         Keyword arguments:
         stage_id -- Stage to show and maybe execute.
         """
+
+        curr_stage_id = self.current_stage[0]
+        if self.current_stage[0] != stage_id:
+            try:                
+                instance = self.stages_handlers[curr_stage_id]
+                instance.on_close()
+            except BaseException as e:
+                stage_info = self.stages[curr_stage_id]
+                self.view.show_alert(stage_info.label,
+                                     "Error on stage close: " + str(e),
+                                     stage_info.halt_on_error)
+
         stage_info = self.stages[stage_id]
 
         if self._next_stage_id == stage_id:
@@ -256,6 +268,10 @@ class Controller(base.BaseController):
                 stage_id,
                 result.outcome['outcome_id'],
                 result.outcome)
+
+        if len(result.feedback) > 0:
+            for idx, text in result.feedback.items():
+                self.set_feedback(stage_id, idx, text)
 
         if result.result == stage.StageResult.RESULT_PASS or \
                 result.result == stage.StageResult.RESULT_PASS_NONFINAL:
