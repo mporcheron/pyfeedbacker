@@ -328,12 +328,15 @@ class Window:
             if self.controller.debug:
                 raise se
 
+        self.refresh()
+
     def set_text(self, stage_id, text):
         """
         An override for output that'll output text only.
         """
         output = stage.OutputText(text)
         self.set_stage_output(stage_id, output)
+        self.refresh()
 
     def set_progressable(self, stage_id):
         """
@@ -341,13 +344,17 @@ class Window:
         and can be executed.
         """
         self._progression_possible[stage_id] = True
+        self.refresh()
 
     def refresh(self):
         """
         Refresh/redraw the whole UI
         """
-        if self.loop.screen._started:
-            self.loop.draw_screen()
+        try:
+            if self.loop.screen._started:
+                self.loop.draw_screen()
+        except:
+            pass
 
     def show_alert(self, title, text, halt_execution=False):
         w = up.PopupDialog(title, text)
