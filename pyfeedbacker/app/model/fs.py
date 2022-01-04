@@ -200,6 +200,9 @@ class FileSystemModel(model.Model):
         with open(file_name, 'w') as json_file:
             json_file.write(json.dumps(self.feedbacks))
 
+        scores_are_ints = config.ini['model_file']['scores_are_ints']
+        marks_are_ints  = config.ini['model_file']['marks_are_ints']
+
         if config.ini['assessment'].getboolean('scores_are_marks', False) \
                 or force_finalise:
             for submission, stages in self.feedbacks.items():
@@ -221,10 +224,45 @@ class FileSystemModel(model.Model):
                     data['mark_max'] = config.ini['assessment'].getfloat(
                         'mark_max', None)
 
+                    if scores_are_ints:
+                        try:
+                            data['score']     = int(data['score'])
+                        except TypeError:
+                            pass
+                        try:
+                            data['score_min'] = int(data['score_min'])
+                        except TypeError:
+                            pass
+                        try:
+                            data['score_max'] = int(data['score_max'])
+                        except TypeError:
+                            pass
+
+                    if marks_are_ints:
+                        try:
+                            data['mark']      = int(data['mark'])
+                        except TypeError:
+                            pass
+                        try:
+                            data['mark_min']  = int(data['mark_min'])
+                        except TypeError:
+                            pass
+                        try:
+                            data['mark_max']  = int(data['mark_max'])
+                        except TypeError:
+                            pass
+
                     scores = self.outcomes[submission]
                     for stage_id, stage_scores in scores.items():
                         data[f'stage_{stage_id}_score'] = stage_scores.score
                         data[f'stage_{stage_id}_mark'] = stage_scores.mark
+
+                        data[f'stage_{stage_id}_score_min'] = \
+                            config.ini[f'stage_{stage_id}'].getfloat(
+                                'score_min', None)
+                        data[f'stage_{stage_id}_mark_min'] = \
+                            config.ini[f'stage_{stage_id}'].getfloat(
+                                'mark_min', None)
 
                         data[f'stage_{stage_id}_score_max'] = \
                             config.ini[f'stage_{stage_id}'].getfloat(
@@ -233,12 +271,39 @@ class FileSystemModel(model.Model):
                             config.ini[f'stage_{stage_id}'].getfloat(
                                 'mark_max', None)
 
-                        data[f'stage_{stage_id}_score_min'] = \
-                            config.ini[f'stage_{stage_id}'].getfloat(
-                                'score_min', None)
-                        data[f'stage_{stage_id}_mark_min'] = \
-                            config.ini[f'stage_{stage_id}'].getfloat(
-                                'mark_min', None)
+                        if scores_are_ints:
+                            try:
+                                data[f'stage_{stage_id}_score'] = \
+                                    int(data[f'stage_{stage_id}_score'])
+                            except TypeError:
+                                pass
+                            try:
+                                data[f'stage_{stage_id}_score_min'] = \
+                                    int(data[f'stage_{stage_id}_score_min'])
+                            except TypeError:
+                                pass
+                            try:
+                                data[f'stage_{stage_id}_score_max'] = \
+                                    int(data[f'stage_{stage_id}_score_max'])
+                            except TypeError:
+                                pass
+
+                        if marks_are_ints:
+                            try:
+                                data[f'stage_{stage_id}_mark'] = \
+                                    int(data[f'stage_{stage_id}_mark'])
+                            except TypeError:
+                                pass
+                            try:
+                                data[f'stage_{stage_id}_mark_min'] = \
+                                    int(data[f'stage_{stage_id}_mark_min'])
+                            except TypeError:
+                                pass
+                            try:
+                                data[f'stage_{stage_id}_mark_max'] = \
+                                    int(data[f'stage_{stage_id}_mark_max'])
+                            except TypeError:
+                                pass
 
                     feedback = str(self.feedbacks[submission])
                     for key, value in data.items():
